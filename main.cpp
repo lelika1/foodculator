@@ -15,6 +15,14 @@ int main() {
         in.close();
     });
 
+    srv.Get("/static/icon.svg", [](const httplib::Request &req, httplib::Response &res) {
+        std::ifstream in("static/icon.svg");
+        std::string str((std::istreambuf_iterator<char>(in)),
+                        std::istreambuf_iterator<char>());
+        res.set_content(str, "image/svg+xml");
+        in.close();
+    });
+
     srv.Get("/stop", [&srv](const httplib::Request& req, httplib::Response& res) {
         srv.stop();
     });
