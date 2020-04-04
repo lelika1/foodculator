@@ -1,38 +1,25 @@
 #include "cpp-httplib/httplib.h"
+#include <fstream>
 #include <iostream>
+#include <streambuf>
+#include <string>
 
-int main(void)
-{
-    using namespace httplib;
+int main() {
+    httplib::Server srv;
 
-    Server svr;
-
-    svr.Get("/hi", [](const Request &req, Response &res) {
-        res.set_content("Hello World!", "text/plain");
+    srv.Get("/", [](const httplib::Request& req, httplib::Response& res) {
+        std::ifstream in("static/index.html");
+        std::string str((std::istreambuf_iterator<char>(in)),
+                        std::istreambuf_iterator<char>());
+        res.set_content(str, "text/html");
+        in.close();
     });
 
-    svr.Get(R"(/numbers/(\d+))", [&](const Request &req, Response &res) {
-        auto numbers = req.matches[1];
-        res.set_content(numbers, "text/plain");
+    srv.Get("/stop", [&srv](const httplib::Request& req, httplib::Response& res) {
+        srv.stop();
     });
 
-    svr.Post("/body-header-param", [](const Request &req, Response &res) {
-        if (req.has_header("Content-Length"))
-        {
-            auto val = req.get_header_value("Content-Length");
-        }
-        if (req.has_param("key"))
-        {
-            auto val = req.get_param_value("key");
-        }
-        res.set_content(req.body, "text/plain");
-    });
-
-    svr.Get("/stop", [&](const Request &req, Response &res) {
-        svr.stop();
-    });
-
-    std::cout << "Ready..." << std::endl;
-
-    svr.listen("localhost", 1234);
+    std::cout << "Listening on http://localhost:1234" << std::endl;
+    srv.listen("localhost", 1234);
+    return 0;
 }
