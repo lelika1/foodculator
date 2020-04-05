@@ -2,6 +2,7 @@
 
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <streambuf>
 #include <string>
 
@@ -63,10 +64,10 @@ int main() {
              };
 
              uint32_t kcal = std::stoi(params["kcal"]);
-             std::string response = "A new ingredient '" + params["product"] +
-                                    "' with " + std::to_string(kcal) +
-                                    "kcal for 100g was added.";
-             res.set_content(response, "text/plain");
+             std::stringstream ss;
+             ss << "A new ingredient '" << params["product"] << "' with "
+                << kcal << "kcal for 100g was added.";
+             res.set_content(ss.str(), "text/plain");
            });
 
   srv.Get("/stop", [&srv](const httplib::Request& req, httplib::Response& res) {
