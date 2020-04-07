@@ -7,8 +7,8 @@
 #include "cpp-httplib/httplib.h"
 #include "db/db.h"
 
-std::vector<std::string> Split(const std::string &str,
-                               const std::string &delimiter) {
+std::vector<std::string> Split(const std::string& str,
+                               const std::string& delimiter) {
     std::vector<std::string> result;
     size_t start = 0;
     auto end = str.find(delimiter);
@@ -21,9 +21,10 @@ std::vector<std::string> Split(const std::string &str,
     return result;
 }
 
-int main(int argc, char **argv) {
+int main(int argc, char** argv) {
     if (argc != 2) {
-        std::cerr << "usage: " << argv[0] << " path_to_static_files" << std::endl;
+        std::cerr << "usage: " << argv[0] << " path_to_static_files"
+                  << std::endl;
         return 1;
     }
 
@@ -31,15 +32,16 @@ int main(int argc, char **argv) {
 
     httplib::Server srv;
 
-    srv.Get("/", [&path_to_static](const httplib::Request &req, httplib::Response &res) {
+    srv.Get("/", [&path_to_static](const httplib::Request& req,
+                                   httplib::Response& res) {
         std::ifstream in(path_to_static + "/index.html");
         std::string str{std::istreambuf_iterator<char>(in),
                         std::istreambuf_iterator<char>()};
         in.close();
         res.set_content(str, "text/html");
     });
-
-    srv.Get("/addingredient", [&path_to_static](const httplib::Request &req, httplib::Response &res) {
+    srv.Get("/addingredient", [&path_to_static](const httplib::Request& req,
+                                                httplib::Response& res) {
         std::ifstream in(path_to_static + "/ingredients.html");
         std::string str{std::istreambuf_iterator<char>(in),
                         std::istreambuf_iterator<char>()};
@@ -47,9 +49,10 @@ int main(int argc, char **argv) {
         res.set_content(str, "text/html");
     });
 
-    srv.Post("/addingredient", [](const httplib::Request &req, httplib::Response &res) {
+    srv.Post("/addingredient", [](const httplib::Request& req,
+                                  httplib::Response& res) {
         std::unordered_map<std::string, std::string> params;
-        for (const auto &e : Split(req.body, "&")) {
+        for (const auto& e : Split(req.body, "&")) {
             auto element = Split(e, "=");
             if (element.size() != 2) {
                 res.status = 400;
@@ -60,22 +63,22 @@ int main(int argc, char **argv) {
         }
 
         if (params["product"].empty() || params["kcal"].empty()) {
-            res.set_content("An ingredient wasn't added. Some information is missing.",
-                            "text/plain");
+            res.set_content(
+                "An ingredient wasn't added. Some information is missing.",
+                "text/plain");
             res.status = 500;
             return;
         };
 
         uint32_t kcal = std::stoi(params["kcal"]);
         std::stringstream ss;
-        ss << "A new ingredient '" << params["product"] << "' with "
-           << kcal << "kcal for 100g was added.";
+        ss << "A new ingredient '" << params["product"] << "' with " << kcal
+           << "kcal for 100g was added.";
         res.set_content(ss.str(), "text/plain");
     });
 
-    srv.Get("/stop", [&srv](const httplib::Request &req, httplib::Response &res) {
-        srv.stop();
-    });
+    srv.Get("/stop", [&srv](const httplib::Request& req,
+                            httplib::Response& res) { srv.stop(); });
 
     srv.set_mount_point("/static", path_to_static.c_str());
 
