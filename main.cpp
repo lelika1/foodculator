@@ -21,19 +21,26 @@ std::vector<std::string> Split(const std::string &str,
     return result;
 }
 
-int main() {
+int main(int argc, char **argv) {
+    if (argc != 2) {
+        std::cerr << "usage: " << argv[0] << " path_to_static_files" << std::endl;
+        return 1;
+    }
+
+    std::string path_to_static = argv[1];
+
     httplib::Server srv;
 
-    srv.Get("/", [](const httplib::Request &req, httplib::Response &res) {
-    	std::ifstream in("static/index.html");
+    srv.Get("/", [&path_to_static](const httplib::Request &req, httplib::Response &res) {
+        std::ifstream in(path_to_static + "/index.html");
         std::string str{std::istreambuf_iterator<char>(in),
                         std::istreambuf_iterator<char>()};
         in.close();
         res.set_content(str, "text/html");
     });
 
-    srv.Get("/addingredient", [](const httplib::Request &req, httplib::Response &res) {
-        std::ifstream in("static/ingredients.html");
+    srv.Get("/addingredient", [&path_to_static](const httplib::Request &req, httplib::Response &res) {
+        std::ifstream in(path_to_static + "/ingredients.html");
         std::string str{std::istreambuf_iterator<char>(in),
                         std::istreambuf_iterator<char>()};
         in.close();
@@ -70,7 +77,7 @@ int main() {
         srv.stop();
     });
 
-    srv.set_mount_point("/static", "./static");
+    srv.set_mount_point("/static", path_to_static.c_str());
 
     std::cout << "Listening on http://localhost:1234" << std::endl;
     srv.listen("localhost", 1234);
