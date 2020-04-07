@@ -9,4 +9,7 @@ set_target_properties(foodculator
 	CXX_STANDARD_REQUIRED ON
 )
 
+add_subdirectory(db)
+
+target_link_libraries(foodculator DbLib)
 target_link_libraries(foodculator pthread)

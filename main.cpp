@@ -1,5 +1,3 @@
-#include <sqlite3.h>
-
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -7,6 +5,7 @@
 #include <string>
 
 #include "cpp-httplib/httplib.h"
+#include "db/db.h"
 
 std::vector<std::string> Split(const std::string &str,
                                const std::string &delimiter) {
@@ -26,7 +25,7 @@ int main() {
     httplib::Server srv;
 
     srv.Get("/", [](const httplib::Request &req, httplib::Response &res) {
-        std::ifstream in("static/index.html");
+    	std::ifstream in("static/index.html");
         std::string str{std::istreambuf_iterator<char>(in),
                         std::istreambuf_iterator<char>()};
         in.close();
