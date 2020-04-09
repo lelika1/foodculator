@@ -24,10 +24,13 @@ class DB {
     static std::unique_ptr<DB> Create(const std::string& path);
     ~DB();
 
-    void AddNewProduct(const Ingredient& ingr);
+    bool InsertProduct(const Ingredient& ingr);
+    bool InsertTableware(const Tableware& tw);
 
    private:
     explicit DB(sqlite3* db) : db_(db) {}
+
+    bool Insert(const char* sql);
 
     sqlite3* db_;
 };

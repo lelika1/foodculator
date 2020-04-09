@@ -55,8 +55,8 @@ int main(int argc, char** argv) {
         res.set_content(str, "text/html");
     });
 
-    srv.Post("/addingredient", [](const httplib::Request& req,
-                                  httplib::Response& res) {
+    srv.Post("/addingredient", [&db](const httplib::Request& req,
+                                     httplib::Response& res) {
         std::unordered_map<std::string, std::string> params;
         for (const auto& e : Split(req.body, "&")) {
             auto element = Split(e, "=");
@@ -77,9 +77,16 @@ int main(int argc, char** argv) {
         };
 
         uint32_t kcal = std::stoi(params["kcal"]);
+        if (!db->InsertProduct({params["product"], kcal})) {
+            res.set_content("An ingredient wasn't added. SQL error occured.",
+                            "text/plain");
+            res.status = 500;
+            return;
+        }
+
         std::stringstream ss;
         ss << "A new ingredient '" << params["product"] << "' with " << kcal
-           << "kcal for 100g was added.";
+           << " kcal for 100 g was added.";
         res.set_content(ss.str(), "text/plain");
     });
 
