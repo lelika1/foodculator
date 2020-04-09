@@ -28,6 +28,12 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    auto db = DB::Create("database.db");
+    if (!db) {
+        std::cerr << "A problem with database.db occured." << std::endl;
+        return 1;
+    }
+
     std::string path_to_static = argv[1];
 
     httplib::Server srv;

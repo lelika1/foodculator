@@ -1,28 +1,45 @@
 #include "db.h"
 
-Ingredient::Ingredient(const std::string& name, uint32_t kcal)
-    : name_(name), kcal_(kcal) {}
+#include <sqlite3.h>
 
-Tableware::Tableware(const std::string& name, uint32_t weight)
-    : name_(name), weight_(weight) {}
+#include <iostream>
 
-DB::DB(const std::string& path) {
-    if (sqlite3_open(path.c_str(), &db)) {
-        throw DBCreateException();
+std::unique_ptr<DB> DB::Create(const std::string& path) {
+    sqlite3* db;
+
+    if (sqlite3_open(path.c_str(), &db) != SQLITE_OK) {
+        std::cerr << "Can't open database: " << path << std::endl;
+        return nullptr;
     }
 
-    // const char createIngredients[] = "CREATE TABLE IF NOT EXISTS
-    // INGREDIENTS(" "ID           INTEGER   PRIMARY KEY   AUTOINCREMENT NOT
-    // NULL,"
-    //     "NAME         TEXT                                  NOT NULL,"
-    //     "KCAL         INTEGER   DEFAULT 0);";
+    char* err_msg = 0;
+    auto cb = [](void*, int, char**, char**) -> int { return 0; };
 
-    // "CREATE TABLE IF NOT EXISTS INGREDIENTS("
-    //     "ID           INTEGER   PRIMARY KEY   AUTOINCREMENT NOT NULL,"
-    //     "NAME         TEXT                                  NOT NULL,"
-    //     "KCAL         INTEGER   DEFAULT 0);";
+    const char sql[] =
+        R"*(CREATE TABLE IF NOT EXISTS INGREDIENTS(
+        ID           INTEGER   PRIMARY KEY   AUTOINCREMENT NOT NULL,
+        NAME         TEXT                                  NOT NULL,
+        KCAL         INTEGER   DEFAULT 0);
+        CREATE TABLE IF NOT EXISTS TABLEWARES(
+        ID           INTEGER   PRIMARY KEY   AUTOINCREMENT NOT NULL,
+        NAME         TEXT                                  NOT NULL,
+        WEIGHT       INTEGER                               NOT NULL);
+    )*";
+
+    if (sqlite3_exec(db, sql, cb, 0, &err_msg) != SQLITE_OK) {
+        std::cout << "Error: " << err_msg << std::endl;
+        sqlite3_free(err_msg);
+        sqlite3_close(db);
+        return nullptr;
+    }
+
+    return std::unique_ptr<DB>(new DB(db));
+}
+
+DB::~DB() {
+    if (db_) {
+        sqlite3_close(db_);
+    }
 }
 
 void DB::AddNewProduct(const Ingredient& ingr) {}
-
-DB::~DB() { sqlite3_close(db); }

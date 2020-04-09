@@ -1,33 +1,33 @@
-#include <sqlite3.h>
-
+#include <memory>
 #include <string>
 
-class DBCreateException : public std::exception {
-   public:
-    const char* what() const throw() override {
-        return "It is impossible to open DB or create table.";
-    }
-};
+class sqlite3;
 
 struct Ingredient {
     std::string name_;
     uint32_t kcal_;
-    Ingredient(const std::string& name_, uint32_t kcal_);
+
+    Ingredient(const std::string& name, uint32_t kcal)
+        : name_(name), kcal_(kcal) {}
 };
 
 struct Tableware {
     std::string name_;
     uint32_t weight_;
-    Tableware(const std::string& name_, uint32_t weight_);
+
+    Tableware(const std::string& name, uint32_t weight)
+        : name_(name), weight_(weight) {}
 };
 
 class DB {
    public:
-    DB(const std::string& path);
+    static std::unique_ptr<DB> Create(const std::string& path);
     ~DB();
 
     void AddNewProduct(const Ingredient& ingr);
 
    private:
-    sqlite3* db;
+    explicit DB(sqlite3* db) : db_(db) {}
+
+    sqlite3* db_;
 };
