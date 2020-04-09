@@ -22,15 +22,15 @@ std::vector<std::string> Split(const std::string& str,
 }
 
 int main(int argc, char** argv) {
-    if (argc != 2) {
-        std::cerr << "usage: " << argv[0] << " path_to_static_files"
-                  << std::endl;
+    if (argc != 3) {
+        std::cerr << "usage: " << argv[0]
+                  << " path_to_static_files path_to_database" << std::endl;
         return 1;
     }
 
-    auto db = DB::Create("database.db");
+    auto db = DB::Create(argv[2]);
     if (!db) {
-        std::cerr << "A problem with database.db occured." << std::endl;
+        std::cerr << "A problem with " << argv[2] << " occured." << std::endl;
         return 1;
     }
 
