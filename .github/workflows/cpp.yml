@@ -12,7 +12,7 @@ jobs:
   build:  
     runs-on: ubuntu-latest
     steps:
-    - run: apt update -y; apt install -y libsqlite3-dev
+    - run: sudo apt update -y; sudo apt install -y libsqlite3-dev
     - name: get-cmake
       uses: lukka/get-cmake@v3.17.1
     - uses: actions/checkout@v2
