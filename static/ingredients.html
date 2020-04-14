@@ -7,13 +7,28 @@
 
 <body>
     <h1>Add a new ingredient</h1>
-    <form action="/addingredient" method="POST">
-        <label for="product">Product:</label><br>
-        <input type="text" id="product" name="product"><br><br>
-        <label for="kcal">kcal for 100g:</label><br>
-        <input type="number" min="0" max="10000" value="0" id="kcal" name="kcal"><br><br><br>
-        <input type="submit" value="Submit">
-    </form>
+    <label for="product">Product:</label><br>
+    <input type="text" id="product" name="product"><br><br>
+    <label for="kcal">kcal for 100g:</label><br>
+    <input type="number" min="0" max="10000" value="0" id="kcal" name="kcal"><br><br><br>
+    <input type="submit" value="Submit" onclick="addProduct()"><br><br>
+
+    <label id="response"></label>
 </body>
+
+<script>
+    function addProduct() {
+        document.getElementById("response").innerHTML = "click"
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function () {
+            document.getElementById("response").innerHTML = this.responseText;
+        };
+
+        xhttp.open("POST", "/addingredient", true);
+        var body = "product=" + document.getElementById("product").value
+        body = body + "&kcal=" + document.getElementById("kcal").value
+        xhttp.send(body);
+    }
+</script>
 
 </html>

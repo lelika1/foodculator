@@ -1,0 +1,35 @@
+<html>
+
+<head>
+    <title>Foodculator 1.0</title>
+    <link rel="icon" href="/static/icon.svg">
+</head>
+
+<body onload="getListFunction()">
+    <h1>All ingredients:</h1>
+    <select id="ingredients">
+    </select>
+
+    <script>
+        function getListFunction() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+
+                if (this.readyState == 4 && this.status == 200) {
+                    var list = document.getElementById("ingredients")
+                    var obj = JSON.parse(this.responseText);
+                    for (i = 0; i < obj.products.length; i++) {
+                        var option = document.createElement("option");
+                        option.text = obj.products[i].name + "\t" + obj.products[i].kcal
+                        list.add(option)
+                    }
+                }
+            };
+            xhttp.open("POST", "/newrecipe", true);
+            xhttp.send();
+        }
+    </script>
+
+</body>
+
+</html>

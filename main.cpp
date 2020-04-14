@@ -55,6 +55,32 @@ int main(int argc, char** argv) {
         res.set_content(str, "text/html");
     });
 
+    srv.Get("/newrecipe", [&path_to_static](const httplib::Request& req,
+                                            httplib::Response& res) {
+        std::ifstream in(path_to_static + "/recipe.html");
+        std::string str{std::istreambuf_iterator<char>(in),
+                        std::istreambuf_iterator<char>()};
+        in.close();
+        res.set_content(str, "text/html");
+    });
+
+    srv.Post("/newrecipe",
+             [&db](const httplib::Request& req, httplib::Response& res) {
+                 std::stringstream ss;
+                 ss << R"({"products":[)";
+                 const auto& products = db->GetAllIngredients();
+                 for (size_t i = 0; i < products.size(); ++i) {
+                     ss << R"({"name":")" << products[i].name_
+                        << R"(", "kcal":)" << products[i].kcal_ << "}";
+                     if (i != products.size() - 1) {
+                         ss << ",";
+                     }
+                 }
+                 ss << R"(]})";
+
+                 res.set_content(ss.str(), "text/json");
+             });
+
     srv.Post("/addingredient", [&db](const httplib::Request& req,
                                      httplib::Response& res) {
         std::unordered_map<std::string, std::string> params;
@@ -85,9 +111,8 @@ int main(int argc, char** argv) {
         }
 
         std::stringstream ss;
-        for (const auto& el : db->GetAllIngredients()) {
-            ss << el.name_ << " " << el.kcal_ << std::endl;
-        }
+        ss << "A new ingredient '" << params["product"] << "' with " << kcal
+           << " kcal for 100 g was added.";
 
         res.set_content(ss.str(), "text/plain");
     });
