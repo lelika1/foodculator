@@ -5,13 +5,13 @@
 ## Build
 
 ```sh
-$> sudo apt install libsqlite3-dev
-$> mkdir build && cd build
-$> cmake .. && make
+$ sudo apt install libsqlite3-dev
+$ mkdir build && cd build
+$ cmake .. && make
 ```
 
 ## Run
 
 ```sh
-$> foodculator path/to/folder/static /tmp/database.db
+$ foodculator path/to/folder/static /tmp/database.db
 ```
