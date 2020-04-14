@@ -1,5 +1,17 @@
 # foodculator
 
-sudo apt install libsqlite3-dev
+![CI](https://github.com/lelika1/foodculator/workflows/CI/badge.svg)
 
-clang++ main.cpp -O2 -o build/foodculator --std=c++17 -lpthread
+## Build
+
+```sh
+$> sudo apt install libsqlite3-dev
+$> mkdir build && cd build
+$> cmake .. && make
+```
+
+## Run
+
+```sh
+$> foodculator path/to/folder/static /tmp/database.db
+```
