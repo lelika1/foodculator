@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [ master ]
   release:
-    types: created
+    types: [created]
 
 jobs:
   build:  
@@ -33,3 +33,5 @@ jobs:
       with:
         name: foodculator ${{ github.work }}
         path: ${{ github.workspace }}/../../_out
+    - name: Build the Docker image
+      run: docker build ${{ github.workspace }}/../../_out --file ${{ github.workspace }}/Dockerfile --tag foodculator:$(date +%s)
