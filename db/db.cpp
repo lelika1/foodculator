@@ -27,7 +27,7 @@ std::unique_ptr<DB> DB::Create(const std::string& path) {
     char* err_msg = 0;
     auto cb = [](void*, int, char**, char**) -> int { return 0; };
     if (sqlite3_exec(db, sql, cb, 0, &err_msg) != SQLITE_OK) {
-        std::cout << "SQL error: " << err_msg << std::endl;
+        std::cerr << "SQL error: " << err_msg << std::endl;
         sqlite3_free(err_msg);
         sqlite3_close(db);
         return nullptr;
@@ -64,10 +64,33 @@ bool DB::Insert(const char* sql) {
     char* err_msg = 0;
     auto cb = [](void*, int, char**, char**) -> int { return 0; };
     if (sqlite3_exec(db_, sql, cb, 0, &err_msg) != SQLITE_OK) {
-        std::cout << "SQL error: " << err_msg << std::endl;
+        std::cerr << "SQL error: " << err_msg << std::endl;
         sqlite3_free(err_msg);
         return false;
     }
 
     return true;
+}
+
+std::vector<Ingredient> DB::GetAllIngredients() {
+    auto cb = [](void* data, int argc, char** argv, char** columns) -> int {
+        if (argc != 2) {
+            return 1;
+        }
+
+        std::vector<Ingredient>* results =
+            static_cast<std::vector<Ingredient>*>(data);
+        results->emplace_back(argv[0], std::stoi(argv[1]));
+        return 0;
+    };
+
+    char* err_msg = 0;
+    auto sql = "SELECT NAME, KCAL from INGREDIENTS";
+    std::vector<Ingredient> results;
+    if (sqlite3_exec(db_, sql, cb, (void*)&results, &err_msg) != SQLITE_OK) {
+        std::cerr << "SQL error: " << err_msg << std::endl;
+        sqlite3_free(err_msg);
+    }
+
+    return results;
 }

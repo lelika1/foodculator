@@ -85,8 +85,10 @@ int main(int argc, char** argv) {
         }
 
         std::stringstream ss;
-        ss << "A new ingredient '" << params["product"] << "' with " << kcal
-           << " kcal for 100 g was added.";
+        for (const auto& el : db->GetAllIngredients()) {
+            ss << el.name_ << " " << el.kcal_ << std::endl;
+        }
+
         res.set_content(ss.str(), "text/plain");
     });
 

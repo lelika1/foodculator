@@ -1,5 +1,6 @@
 #include <memory>
 #include <string>
+#include <vector>
 
 class sqlite3;
 
@@ -26,6 +27,7 @@ class DB {
 
     bool InsertProduct(const Ingredient& ingr);
     bool InsertTableware(const Tableware& tw);
+    std::vector<Ingredient> GetAllIngredients();
 
    private:
     explicit DB(sqlite3* db) : db_(db) {}
