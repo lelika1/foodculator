@@ -1,4 +1,4 @@
-name: C/C++ CI
+name: CI
 
 on:
   push:
@@ -10,9 +10,13 @@ on:
 
 jobs:
   build:  
-    runs-on: ubuntu-latest
-
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ubuntu-latest, maxOS-latest]
     steps:
+    - run: apt update -y; apt install -y libsqlite3-dev
     - name: get-cmake
       uses: lukka/get-cmake@v3.17.1
     - uses: actions/checkout@v2
