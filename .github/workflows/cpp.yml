@@ -12,13 +12,24 @@ jobs:
   build:  
     runs-on: ubuntu-latest
     steps:
-    - run: sudo apt update -y; sudo apt install -y libsqlite3-dev
-    - name: get-cmake
+    - name: Install libsqlite3-dev
+      run: sudo apt update -y; sudo apt install -y libsqlite3-dev
+    - name: Get Cmake
       uses: lukka/get-cmake@v3.17.1
     - uses: actions/checkout@v2
       with: 
         submodules: recursive
-    - name: run-cmake
+    - name: Run CMake and Make
       uses: lukka/run-cmake@v2.0
       with:
         cmakeBuildType: Release
+    - name: Bundle
+      run: |
+        mkdir ${{ github.workspace }}/../../_out 
+        cd ${{ github.workspace }}/../../_out 
+        mv ${{ github.workspace }}/../../_temp/foodculator ${{ github.workspace }}/static .
+    - name: Upload artifact
+      uses: actions/upload-artifact@v1.0.0
+      with:
+        name: foodculator ${{ github.work }}
+        path: ${{ github.workspace }}/../../_out
