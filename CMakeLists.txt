@@ -9,6 +9,8 @@ set_target_properties(foodculator
 	CXX_STANDARD_REQUIRED ON
 )
 
+SET(CMAKE_CXX_FLAGS "-Wall -fno-rtti -O2" )
+
 add_subdirectory(db)
 
 target_link_libraries(foodculator DbLib)
