@@ -1,8 +1,12 @@
 # Container image that runs your code
-FROM alpine:3.10
+FROM alpine:latest as BASE
+RUN apk --no-cache add sqlite
 
-# Copies your code file from your action repository to the filesystem path `/` of the container
-COPY . ./app
-
-# Code file to execute when the docker container starts up (`entrypoint.sh`)
+FROM BASE as builde
+RUN apk --no-cache add build-base clang python cmake sqlite-dev
+COPY . /src
+RUN mkdir /build && cd /build && cmake /src && make
+ 
+FROM BASE
+COPY --from=builder /build/foodculator /src/static/ app
 ENTRYPOINT ["app/foodculator", "app/static", "db.db"]
