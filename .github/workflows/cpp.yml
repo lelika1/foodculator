@@ -15,29 +15,11 @@ jobs:
   build:  
     runs-on: ubuntu-latest
     steps:
-    - name: Install libsqlite3-dev
-      run: sudo apt update -y; sudo apt install -y libsqlite3-dev
-    - name: Get Cmake
-      uses: lukka/get-cmake@v3.17.1
     - uses: actions/checkout@v2
       with: 
         submodules: recursive
-    - name: Run CMake and Make
-      uses: lukka/run-cmake@v2.0
-      with:
-        cmakeBuildType: Release
-    - name: Bundle
-      run: |
-        mkdir ${{ github.workspace }}/../../_out 
-        cd ${{ github.workspace }}/../../_out 
-        mv ${{ github.workspace }}/../../_temp/foodculator ${{ github.workspace }}/static .
-    - name: Upload artifact
-      uses: actions/upload-artifact@v1.0.0
-      with:
-        name: foodculator ${{ github.work }}
-        path: ${{ github.workspace }}/../../_out
     - name: Build the Docker image
-      run: docker build ${{ github.workspace }}/../../_out --file ${{ github.workspace }}/Dockerfile --tag image 
+      run: docker build ${{ github.workspace }} --file ${{ github.workspace }}/Dockerfile --tag image 
 
     - name: Log into registry
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
