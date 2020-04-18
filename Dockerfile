@@ -8,5 +8,5 @@ COPY . /src
 RUN mkdir /build && cd /build && cmake /src && make
  
 FROM BASE
-COPY --from=builder /build/foodculator /src/static/ app
+COPY --from=builder /build/foodculator /src/static/ ./app/
 ENTRYPOINT ["app/foodculator", "app/static", "db.db"]
