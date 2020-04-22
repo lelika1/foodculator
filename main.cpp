@@ -7,6 +7,16 @@
 #include "db/db.h"
 #include "httplib/httplib.h"
 
+namespace {
+const std::string ReadHtml(const std::string& path) {
+    std::ifstream in(path);
+    std::string str{std::istreambuf_iterator<char>(in),
+                    std::istreambuf_iterator<char>()};
+    in.close();
+    return str;
+}
+}  // namespace
+
 std::vector<std::string> Split(const std::string& str,
                                const std::string& delimiter) {
     std::vector<std::string> result;
@@ -40,45 +50,31 @@ int main(int argc, char** argv) {
 
     srv.Get("/", [&path_to_static](const httplib::Request& req,
                                    httplib::Response& res) {
-        std::ifstream in(path_to_static + "/index.html");
-        std::string str{std::istreambuf_iterator<char>(in),
-                        std::istreambuf_iterator<char>()};
-        in.close();
-        res.set_content(str, "text/html");
+        res.set_content(ReadHtml(path_to_static + "/index.html"), "text/html");
     });
 
     srv.Get("/ingredients", [&path_to_static](const httplib::Request& req,
                                               httplib::Response& res) {
-        std::ifstream in(path_to_static + "/ingredients.html");
-        std::string str{std::istreambuf_iterator<char>(in),
-                        std::istreambuf_iterator<char>()};
-        in.close();
-        res.set_content(str, "text/html");
+        res.set_content(ReadHtml(path_to_static + "/ingredients.html"),
+                        "text/html");
     });
 
-    srv.Get("/newrecipe", [&path_to_static](const httplib::Request& req,
+    srv.Get("/tableware", [&path_to_static](const httplib::Request& req,
                                             httplib::Response& res) {
-        std::ifstream in(path_to_static + "/recipe.html");
-        std::string str{std::istreambuf_iterator<char>(in),
-                        std::istreambuf_iterator<char>()};
-        in.close();
-        res.set_content(str, "text/html");
+        res.set_content(ReadHtml(path_to_static + "/tableware.html"),
+                        "text/html");
     });
 
-    srv.Get("/tablewares", [&path_to_static](const httplib::Request& req,
+    srv.Get("/new_recipe", [&path_to_static](const httplib::Request& req,
                                              httplib::Response& res) {
-        std::ifstream in(path_to_static + "/tablewares.html");
-        std::string str{std::istreambuf_iterator<char>(in),
-                        std::istreambuf_iterator<char>()};
-        in.close();
-        res.set_content(str, "text/html");
+        res.set_content(ReadHtml(path_to_static + "/recipe.html"), "text/html");
     });
 
     srv.Post("/get_ingredients",
              [&db](const httplib::Request& req, httplib::Response& res) {
                  std::stringstream ss;
                  ss << R"({"products":[)";
-                 const auto& products = db->GetAllIngredients();
+                 const auto& products = db->GetIngredients();
                  for (size_t i = 0; i < products.size(); ++i) {
                      ss << R"({"name":")" << products[i].name_
                         << R"(", "kcal":)" << products[i].kcal_ << "}";
@@ -91,8 +87,8 @@ int main(int argc, char** argv) {
                  res.set_content(ss.str(), "text/json");
              });
 
-    srv.Post("/addingredient", [&db](const httplib::Request& req,
-                                     httplib::Response& res) {
+    srv.Post("/add_ingredient", [&db](const httplib::Request& req,
+                                      httplib::Response& res) {
         std::unordered_map<std::string, std::string> params;
         for (const auto& e : Split(req.body, "&")) {
             auto element = Split(e, "=");
@@ -123,6 +119,58 @@ int main(int argc, char** argv) {
         std::stringstream ss;
         ss << "A new ingredient '" << params["product"] << "' with " << kcal
            << " kcal for 100 g was added.";
+
+        res.set_content(ss.str(), "text/plain");
+    });
+
+    srv.Post("/get_tableware",
+             [&db](const httplib::Request& req, httplib::Response& res) {
+                 std::stringstream ss;
+                 ss << R"({"tableware":[)";
+                 const auto& tableware = db->GetTableware();
+                 for (size_t i = 0; i < tableware.size(); ++i) {
+                     ss << R"({"name":")" << tableware[i].name_
+                        << R"(", "weight":)" << tableware[i].weight_ << "}";
+                     if (i != tableware.size() - 1) {
+                         ss << ",";
+                     }
+                 }
+                 ss << R"(]})";
+
+                 res.set_content(ss.str(), "text/json");
+             });
+
+    srv.Post("/add_tableware", [&db](const httplib::Request& req,
+                                     httplib::Response& res) {
+        std::unordered_map<std::string, std::string> params;
+        for (const auto& e : Split(req.body, "&")) {
+            auto element = Split(e, "=");
+            if (element.size() != 2) {
+                res.status = 400;
+                return;
+            }
+
+            params[element[0]] = element[1];
+        }
+
+        if (params["name"].empty() || params["weight"].empty()) {
+            res.set_content("A pot wasn't added. Some information is missing.",
+                            "text/plain");
+            res.status = 500;
+            return;
+        };
+
+        uint32_t weight = std::stoi(params["weight"]);
+        if (!db->InsertTableware({params["name"], weight})) {
+            res.set_content("A pot wasn't added. SQL error occured.",
+                            "text/plain");
+            res.status = 500;
+            return;
+        }
+
+        std::stringstream ss;
+        ss << "A new pot '" << params["name"] << "' with weight " << weight
+           << " g was added.";
 
         res.set_content(ss.str(), "text/plain");
     });

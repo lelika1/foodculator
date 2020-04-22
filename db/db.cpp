@@ -18,7 +18,7 @@ std::unique_ptr<DB> DB::Create(const std::string& path) {
         ID           INTEGER   PRIMARY KEY   AUTOINCREMENT NOT NULL,
         NAME         TEXT                                  NOT NULL,
         KCAL         INTEGER   DEFAULT 0);
-        CREATE TABLE IF NOT EXISTS TABLEWARES(
+        CREATE TABLE IF NOT EXISTS TABLEWARE(
         ID           INTEGER   PRIMARY KEY   AUTOINCREMENT NOT NULL,
         NAME         TEXT                                  NOT NULL,
         WEIGHT       INTEGER                               NOT NULL);
@@ -53,7 +53,7 @@ bool DB::InsertProduct(const Ingredient& ingr) {
 
 bool DB::InsertTableware(const Tableware& tw) {
     std::stringstream ss;
-    ss << "INSERT INTO TABLEWARES (NAME,WEIGHT) VALUES ('" << tw.name_ << "', "
+    ss << "INSERT INTO TABLEWARE (NAME,WEIGHT) VALUES ('" << tw.name_ << "', "
        << tw.weight_ << ");";
     std::string sql = ss.str();
 
@@ -72,25 +72,31 @@ bool DB::Insert(const char* sql) {
     return true;
 }
 
-std::vector<Ingredient> DB::GetAllIngredients() {
+std::vector<Ingredient> DB::GetIngredients() {
+    return SelectAll<Ingredient>("SELECT NAME, KCAL from INGREDIENTS");
+}
+
+std::vector<Tableware> DB::GetTableware() {
+    return SelectAll<Tableware>("SELECT NAME, WEIGHT from TABLEWARE");
+}
+
+template <class T>
+std::vector<T> DB::SelectAll(const char* sql) {
     auto cb = [](void* data, int argc, char** argv, char** columns) -> int {
         if (argc != 2) {
             return 1;
         }
 
-        std::vector<Ingredient>* results =
-            static_cast<std::vector<Ingredient>*>(data);
+        std::vector<T>* results = static_cast<std::vector<T>*>(data);
         results->emplace_back(argv[0], std::stoi(argv[1]));
         return 0;
     };
 
     char* err_msg = 0;
-    auto sql = "SELECT NAME, KCAL from INGREDIENTS";
-    std::vector<Ingredient> results;
+    std::vector<T> results;
     if (sqlite3_exec(db_, sql, cb, (void*)&results, &err_msg) != SQLITE_OK) {
         std::cerr << "SQL error: " << err_msg << std::endl;
         sqlite3_free(err_msg);
     }
-
     return results;
 }

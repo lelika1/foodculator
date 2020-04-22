@@ -27,12 +27,16 @@ class DB {
 
     bool InsertProduct(const Ingredient& ingr);
     bool InsertTableware(const Tableware& tw);
-    std::vector<Ingredient> GetAllIngredients();
+    std::vector<Ingredient> GetIngredients();
+    std::vector<Tableware> GetTableware();
 
    private:
     explicit DB(sqlite3* db) : db_(db) {}
 
     bool Insert(const char* sql);
+
+    template <class T>
+    std::vector<T> SelectAll(const char* sql);
 
     sqlite3* db_;
 };
