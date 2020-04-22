@@ -7,8 +7,9 @@
 
 <body onload="getListFunction()">
     <h1>All ingredients:</h1>
-    <select id="ingredients">
-    </select>
+
+    <input list="ingredients">
+    <datalist id="ingredients"></datalist>
 
     <script>
         function getListFunction() {
@@ -21,7 +22,7 @@
                     for (i = 0; i < obj.products.length; i++) {
                         var option = document.createElement("option");
                         option.text = obj.products[i].name + "\t" + obj.products[i].kcal
-                        list.add(option)
+                        list.appendChild(option)
                     }
                 }
             };
@@ -29,7 +30,6 @@
             xhttp.send();
         }
     </script>
-
 </body>
 
 </html>
