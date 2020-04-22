@@ -5,14 +5,29 @@
     <link rel="icon" href="/static/icon.svg">
 </head>
 
-<body onload="getProductsFunction()">
-    <h1>All ingredients:</h1>
+<body onload="loadFunction()">
 
+    <h1>Create a new recipe:</h1>
+
+    <h3>Add all ingredients:</h3>
     <input list="ingredients">
     <datalist id="ingredients"></datalist>
+    <input type="number" min="0" max="10000" value="0" id="gram">
+    <button>Add to recipe</button><br><br>
+
+    <h3>Choose a pot</h3>
+    <form id="tableware">
+    </form>
+
+    <button id="calculate"> Calculate food energy </button>
 
     <script>
-        function getProductsFunction() {
+        function loadFunction() {
+            getProducts()
+            getTableware()
+        }
+
+        function getProducts() {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
 
@@ -29,6 +44,48 @@
             xhttp.open("POST", "/get_ingredients", true);
             xhttp.send();
         }
+
+        function getTableware() {
+            var tw_form = document.getElementById("tableware")
+            var radio = document.createElement("INPUT");
+            radio.setAttribute("type", "radio");
+            radio.setAttribute("id", "0");
+            radio.setAttribute("name", "tableware");
+            radio.setAttribute("checked", true);
+            tw_form.appendChild(radio);
+
+            var label = document.createElement("LABEL");
+            label.setAttribute("for", "0");
+            label.appendChild(document.createTextNode("None"));
+            tw_form.appendChild(label);
+            tw_form.appendChild(document.createElement("BR"));
+
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    var list = document.getElementById("tableware")
+                    var obj = JSON.parse(this.responseText);
+                    for (i = 0; i < obj.tableware.length; i++) {
+                        var radio = document.createElement("INPUT");
+                        radio.setAttribute("type", "radio");
+                        radio.setAttribute("id", i + 1);
+                        radio.setAttribute("name", "tableware");
+                        tw_form.appendChild(radio);
+
+                        label = document.createElement("LABEL");
+                        label.setAttribute("for", i + 1);
+                        var t = document.createTextNode(obj.tableware[i].name + "\t"
+                            + obj.tableware[i].weight + " g");
+                        label.appendChild(t);
+                        tw_form.appendChild(label);
+                        tw_form.appendChild(document.createElement("BR"));
+                    }
+                }
+            };
+            xhttp.open("POST", "/get_tableware", true);
+            xhttp.send();
+        }
+
     </script>
 </body>
 
