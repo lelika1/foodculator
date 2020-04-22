@@ -1,11 +1,11 @@
 # Container image that runs your code
 FROM alpine:latest as BASE
-RUN apk --no-cache add sqlite
+RUN apk --no-cache add sqlite-dev libstdc++
 
 FROM BASE as builder
-RUN apk --no-cache add build-base clang python cmake sqlite-dev
+RUN apk --no-cache add build-base clang python cmake
 COPY . /src
-RUN mkdir /build && cd /build && cmake /src && make
+RUN mkdir /build && cd /build && CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake /src && make
  
 FROM BASE
 COPY --from=builder /build/foodculator /src/static/ ./app/
