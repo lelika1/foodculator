@@ -5,14 +5,14 @@
     <link rel="icon" href="/static/icon.svg">
 </head>
 
-<body onload="getListFunction()">
+<body onload="getProductsFunction()">
     <h1>All ingredients:</h1>
 
     <input list="ingredients">
     <datalist id="ingredients"></datalist>
 
     <script>
-        function getListFunction() {
+        function getProductsFunction() {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
 
@@ -26,7 +26,7 @@
                     }
                 }
             };
-            xhttp.open("POST", "/newrecipe", true);
+            xhttp.open("POST", "/get_ingredients", true);
             xhttp.send();
         }
     </script>

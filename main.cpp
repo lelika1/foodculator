@@ -46,8 +46,9 @@ int main(int argc, char** argv) {
         in.close();
         res.set_content(str, "text/html");
     });
-    srv.Get("/addingredient", [&path_to_static](const httplib::Request& req,
-                                                httplib::Response& res) {
+
+    srv.Get("/ingredients", [&path_to_static](const httplib::Request& req,
+                                              httplib::Response& res) {
         std::ifstream in(path_to_static + "/ingredients.html");
         std::string str{std::istreambuf_iterator<char>(in),
                         std::istreambuf_iterator<char>()};
@@ -64,7 +65,16 @@ int main(int argc, char** argv) {
         res.set_content(str, "text/html");
     });
 
-    srv.Post("/newrecipe",
+    srv.Get("/tablewares", [&path_to_static](const httplib::Request& req,
+                                             httplib::Response& res) {
+        std::ifstream in(path_to_static + "/tablewares.html");
+        std::string str{std::istreambuf_iterator<char>(in),
+                        std::istreambuf_iterator<char>()};
+        in.close();
+        res.set_content(str, "text/html");
+    });
+
+    srv.Post("/get_ingredients",
              [&db](const httplib::Request& req, httplib::Response& res) {
                  std::stringstream ss;
                  ss << R"({"products":[)";

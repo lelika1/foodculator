@@ -5,12 +5,16 @@
     <link rel="icon" href="/static/icon.svg">
 </head>
 
-<body>
-    <h1>Add a new ingredient</h1>
-    <label for="product">Product:</label><br>
+<body onload="getProductsFunction()">
+    <h1>All products:</h1>
+    <select id="ingredients"></select>
+
+    <h1>Add a new product</h1>
+    <label for="product">Product:</label>
     <input type="text" id="product" name="product"><br><br>
-    <label for="kcal">kcal for 100g:</label><br>
-    <input type="number" min="0" max="10000" value="0" id="kcal" name="kcal"><br><br><br>
+
+    <label for="kcal">kcal for 100g:</label>
+    <input type="number" min="0" max="10000" value="0" id="kcal" name="kcal"><br><br>
     <input type="submit" value="Submit" onclick="addProduct()"><br><br>
 
     <label id="response"></label>
@@ -18,16 +22,41 @@
 
 <script>
     function addProduct() {
-        document.getElementById("response").innerHTML = "click"
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
             document.getElementById("response").innerHTML = this.responseText;
+            if (this.readyState == 4 && this.status == 200) {
+                var option = document.createElement("option");
+                option.text = document.getElementById("product").value
+                    + "\t" + document.getElementById("kcal").value
+                document.getElementById("ingredients").add(option)
+
+                document.getElementById("product").value = ''
+                document.getElementById("kcal").value = '0'
+            }
         };
 
         xhttp.open("POST", "/addingredient", true);
         var body = "product=" + document.getElementById("product").value
         body = body + "&kcal=" + document.getElementById("kcal").value
         xhttp.send(body);
+    }
+
+    function getProductsFunction() {
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function () {
+            if (this.readyState == 4 && this.status == 200) {
+                var list = document.getElementById("ingredients")
+                var obj = JSON.parse(this.responseText);
+                for (i = 0; i < obj.products.length; i++) {
+                    var option = document.createElement("option");
+                    option.text = obj.products[i].name + "\t" + obj.products[i].kcal
+                    list.add(option)
+                }
+            }
+        };
+        xhttp.open("POST", "/get_ingredients", true);
+        xhttp.send();
     }
 </script>
 
