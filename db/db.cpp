@@ -94,7 +94,7 @@ std::vector<T> DB::SelectAll(const char* sql) {
 
     char* err_msg = 0;
     std::vector<T> results;
-    if (sqlite3_exec(db_, sql, cb, (void*)&results, &err_msg) != SQLITE_OK) {
+    if (sqlite3_exec(db_, sql, cb, &results, &err_msg) != SQLITE_OK) {
         std::cerr << "SQL error: " << err_msg << std::endl;
         sqlite3_free(err_msg);
     }

@@ -8,7 +8,7 @@
 #include "httplib/httplib.h"
 
 namespace {
-const std::string ReadHtml(const std::string& path) {
+std::string ReadHtml(const std::string& path) {
     std::ifstream in(path);
     std::string str{std::istreambuf_iterator<char>(in),
                     std::istreambuf_iterator<char>()};
@@ -48,27 +48,19 @@ int main(int argc, char** argv) {
 
     httplib::Server srv;
 
-    srv.Get("/", [&path_to_static](const httplib::Request& req,
-                                   httplib::Response& res) {
-        res.set_content(ReadHtml(path_to_static + "/index.html"), "text/html");
-    });
+    std::vector<std::pair<const char*, const char*>> html_pages = {
+        {"/", "/index.html"},
+        {"/ingredients", "/ingredients.html"},
+        {"/tableware", "/tableware.html"},
+        {"/new_recipe", "/recipe.html"}};
 
-    srv.Get("/ingredients", [&path_to_static](const httplib::Request& req,
-                                              httplib::Response& res) {
-        res.set_content(ReadHtml(path_to_static + "/ingredients.html"),
-                        "text/html");
-    });
-
-    srv.Get("/tableware", [&path_to_static](const httplib::Request& req,
-                                            httplib::Response& res) {
-        res.set_content(ReadHtml(path_to_static + "/tableware.html"),
-                        "text/html");
-    });
-
-    srv.Get("/new_recipe", [&path_to_static](const httplib::Request& req,
-                                             httplib::Response& res) {
-        res.set_content(ReadHtml(path_to_static + "/recipe.html"), "text/html");
-    });
+    for (const auto& it : html_pages) {
+        srv.Get(it.first,
+                [path = (path_to_static + it.second)](
+                    const httplib::Request& req, httplib::Response& res) {
+                    res.set_content(ReadHtml(path), "text/html");
+                });
+    }
 
     srv.Post("/get_ingredients",
              [&db](const httplib::Request& req, httplib::Response& res) {
