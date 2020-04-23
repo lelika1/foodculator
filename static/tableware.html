@@ -10,15 +10,14 @@
     <select id="tableware"></select>
 
     <h1>Add new</h1>
-    <label>Name:</label>
+    <label for="name">Name:</label>
     <input type="text" id="name"><br><br>
 
-    <label>Weight:</label>
+    <label for="weight">Weight:</label>
     <input type="number" min="0" max="10000" value="0" id="weight">
-    <label>grams</label><br><br>
+    <label for="weight">grams</label><br><br>
 
-    <input type="submit" value="Submit" onclick="addTableware()"><br><br>
-
+    <input type="submit" value="Submit" onclick="addTableware()">
     <label id="response"></label>
 </body>
 
@@ -41,7 +40,7 @@
 
         xhttp.open("POST", "/add_tableware", true);
         var body = "name=" + document.getElementById("name").value
-        body = body + "&weight=" + document.getElementById("weight").value
+            + "&weight=" + document.getElementById("weight").value
         xhttp.send(body);
     }
 
@@ -58,6 +57,7 @@
                 }
             }
         };
+
         xhttp.open("POST", "/get_tableware", true);
         xhttp.send();
     }

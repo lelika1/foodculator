@@ -13,11 +13,19 @@
     <input list="ingredients">
     <datalist id="ingredients"></datalist>
     <input type="number" min="0" max="10000" value="0" id="gram">
-    <button>Add to recipe</button><br><br>
+    <button>Add to recipe</button><br>
 
-    <h3>Choose a pot</h3>
-    <form id="tableware">
-    </form>
+    <h3>Recipe's ingredients:</h3>
+    <div id="recipe">
+    </div>
+
+    <h3>Choose a pot:</h3>
+    <div id="tableware">
+    </div>
+
+    <h3>Input total weight:</h3>
+    <input type="number" min="1" max="10000" value="1" id="total_weight">
+    <label for="total_weight">grams</label><br><br>
 
     <button id="calculate"> Calculate food energy </button>
 
@@ -30,7 +38,6 @@
         function getProducts() {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
-
                 if (this.readyState == 4 && this.status == 200) {
                     var list = document.getElementById("ingredients")
                     var obj = JSON.parse(this.responseText);
@@ -41,24 +48,29 @@
                     }
                 }
             };
+
             xhttp.open("POST", "/get_ingredients", true);
             xhttp.send();
         }
 
-        function getTableware() {
-            var tw_form = document.getElementById("tableware")
-            var radio = document.createElement("INPUT");
-            radio.setAttribute("type", "radio");
-            radio.setAttribute("id", "0");
-            radio.setAttribute("name", "tableware");
-            radio.setAttribute("checked", true);
-            tw_form.appendChild(radio);
+        function addItemToTableware(id, name, checked, text) {
+            var div = document.getElementById("tableware")
+            var radio = document.createElement("input");
+            radio.type = 'radio';
+            radio.id = id;
+            radio.name = name;
+            radio.checked = checked;
+            div.appendChild(radio);
 
-            var label = document.createElement("LABEL");
-            label.setAttribute("for", "0");
-            label.appendChild(document.createTextNode("None"));
-            tw_form.appendChild(label);
-            tw_form.appendChild(document.createElement("BR"));
+            var label = document.createElement("label");
+            label.for = id;
+            label.appendChild(document.createTextNode(text));
+            div.appendChild(label);
+            div.appendChild(document.createElement("br"));
+        }
+
+        function getTableware() {
+            addItemToTableware('pod0', 'tableware', true, "None");
 
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
@@ -66,22 +78,12 @@
                     var list = document.getElementById("tableware")
                     var obj = JSON.parse(this.responseText);
                     for (i = 0; i < obj.tableware.length; i++) {
-                        var radio = document.createElement("INPUT");
-                        radio.setAttribute("type", "radio");
-                        radio.setAttribute("id", i + 1);
-                        radio.setAttribute("name", "tableware");
-                        tw_form.appendChild(radio);
-
-                        label = document.createElement("LABEL");
-                        label.setAttribute("for", i + 1);
-                        var t = document.createTextNode(obj.tableware[i].name + "\t"
-                            + obj.tableware[i].weight + " g");
-                        label.appendChild(t);
-                        tw_form.appendChild(label);
-                        tw_form.appendChild(document.createElement("BR"));
+                        var t = obj.tableware[i].name + "\t" + obj.tableware[i].weight + " g";
+                        addItemToTableware('pot' + (i + 1), 'tableware', false, t);
                     }
                 }
             };
+
             xhttp.open("POST", "/get_tableware", true);
             xhttp.send();
         }

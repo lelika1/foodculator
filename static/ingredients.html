@@ -10,14 +10,14 @@
     <select id="ingredients"></select>
 
     <h1>Add a new product</h1>
-    <label>Product:</label>
+    <label for="product">Product:</label>
     <input type="text" id="product"><br><br>
 
-    <label>kcal:</label>
+    <label for="kcal">kcal:</label>
     <input type="number" min="0" max="10000" value="0" id="kcal">
-    <label>for 100g</label><br><br>
-    <input type="submit" value="Submit" onclick="addProduct()"><br><br>
+    <label for="kcal">for 100g</label><br><br>
 
+    <input type="submit" value="Submit" onclick="addProduct()">
     <label id="response"></label>
 </body>
 
@@ -39,7 +39,7 @@
 
         xhttp.open("POST", "/add_ingredient", true);
         var body = "product=" + document.getElementById("product").value
-        body = body + "&kcal=" + document.getElementById("kcal").value
+            + "&kcal=" + document.getElementById("kcal").value
         xhttp.send(body);
     }
 
@@ -56,6 +56,7 @@
                 }
             }
         };
+
         xhttp.open("POST", "/get_ingredients", true);
         xhttp.send();
     }
