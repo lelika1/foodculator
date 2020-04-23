@@ -181,6 +181,6 @@ int main(int argc, char** argv) {
     srv.set_mount_point("/static", path_to_static.c_str());
 
     std::cout << "Listening on http://localhost:1234" << std::endl;
-    srv.listen("localhost", 1234);
+    srv.listen("0.0.0.0", 1234);
     return 0;
 }
