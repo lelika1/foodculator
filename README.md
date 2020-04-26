@@ -15,3 +15,19 @@ $ cmake .. && make
 ```sh
 $ foodculator path/to/folder/static /tmp/database.db
 ```
+
+## Build with Docker
+
+```sh
+$ docker build .
+```
+
+## Run in Docker
+
+
+```sh
+$ docker run -p 1234:1234 --rm --label=com.centurylinklabs.watchtower.stop-signal=SIGINT \
+   -v /root/foodprod.db:/db.db \
+   --name foodculator \
+   docker.pkg.github.com/lelika1/foodculator/foodculator:latest
+```
