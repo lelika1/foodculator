@@ -6,6 +6,7 @@
 
 #include "db/db.h"
 #include "httplib/httplib.h"
+#include "json11/json11.hpp"
 
 namespace {
 std::string ReadHtml(const std::string& path) {

@@ -21,7 +21,9 @@ set_target_properties(foodculator
 SET(CMAKE_CXX_FLAGS "-Wall -fno-rtti -O2" )
 
 add_subdirectory(db)
+add_subdirectory(json11)
 
 target_link_libraries(foodculator DbLib)
+target_link_libraries(foodculator json11)
 target_link_libraries(foodculator Httplib)
 target_link_libraries(foodculator pthread)
