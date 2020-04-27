@@ -20,7 +20,6 @@ jobs:
         submodules: recursive
     - name: Build the Docker image
       run: |
-        # Strip git ref prefix from version
         VERSION="${{ github.sha }}"
         echo VERSION="$VERSION"
         docker build --build-arg version="$VERSION" ${{ github.workspace }} --file ${{ github.workspace }}/Dockerfile --tag image 
