@@ -8,6 +8,7 @@ COPY . /src
 RUN mkdir /build && cd /build && CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake /src && make
  
 FROM BASE
-COPY --from=builder /build/foodculator ./app/
-COPY --from=builder /src/static ./app/static
-ENTRYPOINT ["app/foodculator", "app/static", "db.db"]
+COPY --from=builder /build/foodculator /app/
+COPY --from=builder /src/static /app/static
+ENV DB_PATH "/data/db.db"
+ENTRYPOINT ["/app/foodculator", "/app/static", "$DB_PATH"]
