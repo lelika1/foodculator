@@ -16,6 +16,9 @@ $ cmake .. && make
 $ foodculator path/to/folder/static /tmp/database.db
 ```
 
+* `/version` http handler exposes the value of `VERSION` env variable.
+* `PORT` env variable is used to override the port (`1234` by default).
+
 ## Build with Docker
 
 ```sh
