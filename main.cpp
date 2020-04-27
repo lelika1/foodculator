@@ -168,12 +168,24 @@ int main(int argc, char** argv) {
         res.set_content(ss.str(), "text/plain");
     });
 
-    srv.Get("/stop", [&srv](const httplib::Request& req,
-                            httplib::Response& res) { srv.stop(); });
+    std::string version = "UNKNOWN";
+    if (char* v = std::getenv("VERSION"); v) {
+        version = v;
+    }
+    srv.Get("/version",
+            [&version](const httplib::Request& req, httplib::Response& res) {
+                res.set_content("Foodculator version: " + version, "text/plain");
+            });
 
     srv.set_mount_point("/static", path_to_static.c_str());
 
-    std::cout << "Listening on http://localhost:1234" << std::endl;
+    int port = 1234;
+    if (char* v = std::getenv("PORT"); v) {
+        port = std::stoi(v);
+    }
+    
+    std::cout << "Foodculator version: " << version << std::endl;
+    std::cout << "Listening on http://localhost:" << port << std::endl;
     srv.listen("0.0.0.0", 1234);
     return 0;
 }
