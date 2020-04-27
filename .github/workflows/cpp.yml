@@ -21,7 +21,7 @@ jobs:
     - name: Build the Docker image
       run: |
         # Strip git ref prefix from version
-        VERSION="${{ github.ref }}"
+        VERSION="${{ github.sha }}"
         echo VERSION=$VERSION
         docker build --build-arg VERSION="$VERSION" ${{ github.workspace }} --file ${{ github.workspace }}/Dockerfile --tag image 
 
