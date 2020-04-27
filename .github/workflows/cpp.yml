@@ -19,7 +19,11 @@ jobs:
       with: 
         submodules: recursive
     - name: Build the Docker image
-      run: docker build ${{ github.workspace }} --file ${{ github.workspace }}/Dockerfile --tag image 
+      run: |
+        # Strip git ref prefix from version
+        VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+        
+        docker build --build-arg VERSION=$VERSION ${{ github.workspace }} --file ${{ github.workspace }}/Dockerfile --tag image 
 
     - name: Log into registry
       run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u ${{ github.actor }} --password-stdin
