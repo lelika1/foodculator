@@ -3,17 +3,18 @@
 <head>
     <title>Foodculator 1.0</title>
     <link rel="icon" href="/static/icon.svg">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 </head>
 
-<body onload="loadFunction()">
+<body onload="loadData()">
 
     <h1>Create a new recipe:</h1>
 
     <h3>Add all ingredients:</h3>
-    <input list="ingredients">
+    <input list="ingredients" id="getIngredient">
     <datalist id="ingredients"></datalist>
-    <input type="number" min="0" max="10000" value="0" id="gram">
-    <button>Add to recipe</button><br>
+    <input type="number" min="0" max="10000" value="0" id="gram" onkeydown="callOnEnter(addNextIngredient)">
+    <button onclick="addNextIngredient()">Add to recipe</button><br>
 
     <h3>Recipe's ingredients:</h3>
     <div id="recipe">
@@ -24,28 +25,29 @@
     </div>
 
     <h3>Input total weight:</h3>
-    <input type="number" min="1" max="10000" value="1" id="total_weight">
-    <label for="total_weight">grams</label><br><br>
+    <input type="number" min="1" max="10000" value="1" id="totalWeight" onkeydown="callOnEnter(calculate)">
+    <label for="totalWeight">grams</label><br><br>
 
-    <button id="calculate"> Calculate food energy </button>
+    <button id="calculate" onclick="calculate()"> Calculate food energy </button><br>
+    <label id="textResult"></label><br><br>
+    <label id="calcResult"></label><br><br>
 
     <script>
-        function loadFunction() {
-            getProducts()
-            getTableware()
+        function loadData() {
+            loadProducts();
+            loadTableware();
         }
 
-        function getProducts() {
+        function loadProducts() {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
-                    var list = document.getElementById("ingredients")
-                    var obj = JSON.parse(this.responseText);
-                    for (i = 0; i < obj.products.length; i++) {
-                        var option = document.createElement("option");
-                        option.text = obj.products[i].name + "\t" + obj.products[i].kcal
-                        list.appendChild(option)
-                    }
+                    JSON.parse(this.responseText).products
+                        .forEach(pr =>
+                            $("#ingredients").append($("<option>")
+                                .attr('kcal', pr.kcal)
+                                .text(`${pr.name} ${pr.kcal} kcal`))
+                        );
                 }
             };
 
@@ -53,34 +55,31 @@
             xhttp.send();
         }
 
-        function addItemToTableware(id, name, checked, text) {
-            var div = document.getElementById("tableware")
-            var radio = document.createElement("input");
-            radio.type = 'radio';
-            radio.id = id;
-            radio.name = name;
-            radio.checked = checked;
-            div.appendChild(radio);
+        function addItemToTableware(weight, name, text, checked = false) {
+            let id = 'pod' + $("input[name='tableware']").length
+            let radio = $('<input type=radio>')
+                .attr('name', name)
+                .attr('checked', checked)
+                .attr('id', id)
+                .val(weight);
 
-            var label = document.createElement("label");
-            label.for = id;
-            label.appendChild(document.createTextNode(text));
-            div.appendChild(label);
-            div.appendChild(document.createElement("br"));
+            $('#tableware')
+                .append(radio)
+                .append($("<label>").attr('for', id).text(text))
+                .append("<br>");
         }
 
-        function getTableware() {
-            addItemToTableware('pod0', 'tableware', true, "None");
+        function loadTableware() {
+            addItemToTableware(0, 'tableware', "None", true);
 
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
-                    var list = document.getElementById("tableware")
-                    var obj = JSON.parse(this.responseText);
-                    for (i = 0; i < obj.tableware.length; i++) {
-                        var t = obj.tableware[i].name + "\t" + obj.tableware[i].weight + " g";
-                        addItemToTableware('pot' + (i + 1), 'tableware', false, t);
-                    }
+                    JSON.parse(this.responseText).tableware
+                        .forEach(tw => {
+                            let text = `${tw.name} ${tw.weight} g`;
+                            addItemToTableware(tw.weight, 'tableware', text);
+                        });
                 }
             };
 
@@ -88,6 +87,70 @@
             xhttp.send();
         }
 
+        function callOnEnter(fn) {
+            if (event.key === 'Enter') {
+                fn();
+            }
+        }
+
+        var allIngredients = [];
+
+        function addNextIngredient() {
+            let grams = $("#gram").val();
+            if (grams == 0) {
+                return;
+            }
+
+            var product = $("#getIngredient").val();
+            var found = $('#ingredients option').filter((idx, el) => el.value === product);
+            if (found.length == 0) {
+                return;
+            }
+
+            let id = `i${allIngredients.length}`;
+            let edit = $('<input type="number" min=0 max=10000>')
+                .attr("id", id)
+                .val(grams);
+
+            $('#recipe')
+                .append($("<label>").attr('for', id).text(product))
+                .append(edit)
+                .append("<br>");
+
+            allIngredients.push({
+                kcal: $(found[0]).attr("kcal"),
+                weight: edit
+            });
+
+            $("#gram").val(0);
+            $("#getIngredient").val('').focus();;
+        }
+
+        function calculate() {
+            if (allIngredients.length == 0) {
+                return;
+            }
+
+            var totalEnergy = 0.0;
+            var result = [];
+            for (let ing of allIngredients) {
+                let weight = ing.weight.val();
+                totalEnergy += ing.kcal * weight / 100.0;
+                result.push(`${ing.kcal} * ${weight / 100.0}`);
+            }
+
+            let totalWeight = parseInt($("#totalWeight").val());
+            let twWeight = parseInt($("input[name='tableware']:checked").val());
+            if (totalWeight <= twWeight) {
+                return;
+            }
+
+            totalEnergy = totalEnergy * 100 / (totalWeight - twWeight);
+            $("#calcResult").text(`Final energy is ${totalEnergy} kcal per 100 g.`);
+
+            var text = `(${result.join("+")}) * 100 / (${totalWeight}-${twWeight}) = ${totalEnergy}`;
+            $("#textResult").text(text);
+        }
     </script>
 </body>
 
