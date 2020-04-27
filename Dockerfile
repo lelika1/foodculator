@@ -11,6 +11,5 @@ FROM BASE
 COPY --from=builder /build/foodculator /app/
 COPY --from=builder /src/static /app/static
 ENV DB_PATH "/data/db.db"
-ARG version=UNKNOWN
-ENV VERSION="$version"
+ENV VERSION="UNKNOWN"
 ENTRYPOINT ["/app/foodculator", "/app/static", "$DB_PATH"]
