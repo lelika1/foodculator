@@ -12,7 +12,7 @@
 #include "httplib/httplib.h"
 #include "json11/json11.hpp"
 
-    namespace {
+namespace {
 std::string ReadHtml(const std::string& path) {
     std::ifstream in(path);
     std::string str{std::istreambuf_iterator<char>(in),
@@ -216,6 +216,11 @@ int main(int argc, char** argv) {
     server = &srv;
     std::signal(SIGTERM, signal_handler);
 
+    srv.set_logger([](const httplib::Request& req,
+                      const httplib::Response& res) {
+        std::cout << req.method << " " << req.path << ":\tcode=" << res.status
+                  << " size=" << res.body.length() << "b" << std::endl;
+    });
     srv.listen("0.0.0.0", port);
 
     std::cout << "I'll be back!" << std::endl;
