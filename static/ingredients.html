@@ -3,6 +3,7 @@
 <head>
     <title>Foodculator 1.0</title>
     <link rel="icon" href="/static/icon.svg">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
 </head>
 
 <body onload="getProductsFunction()">
@@ -14,7 +15,7 @@
     <input type="text" id="product"><br><br>
 
     <label for="kcal">kcal:</label>
-    <input type="number" min="0" max="10000" value="0" id="kcal">
+    <input type="number" min="0" max="10000" value="0" id="kcal" onkeydown="callOnEnter(addProduct)">
     <label for="kcal">for 100g</label><br><br>
 
     <input type="submit" value="Submit" onclick="addProduct()">
@@ -22,38 +23,37 @@
 </body>
 
 <script>
+    function callOnEnter(fn) {
+        if (event.key === 'Enter') {
+            fn();
+        }
+    }
+
     function addProduct() {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
             document.getElementById("response").innerHTML = this.responseText;
             if (this.readyState == 4 && this.status == 200) {
-                var option = document.createElement("option");
-                option.text = document.getElementById("product").value
-                    + "\t" + document.getElementById("kcal").value + " kcal"
-                document.getElementById("ingredients").add(option)
-
-                document.getElementById("product").value = ''
-                document.getElementById("kcal").value = '0'
+                $("#ingredients").append($("<option>")
+                    .text(`${$("#product").val()} ${$("#kcal").val()} kcal`));
+                $("#kcal").val(0);
+                $("#product").val('').focus();
             }
         };
 
         xhttp.open("POST", "/add_ingredient", true);
-        var body = "product=" + document.getElementById("product").value
-            + "&kcal=" + document.getElementById("kcal").value
-        xhttp.send(body);
+        xhttp.send(`product=${$("#product").val()}&kcal=${$("#kcal").val()}`);
     }
 
     function getProductsFunction() {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
-                var list = document.getElementById("ingredients")
-                var obj = JSON.parse(this.responseText);
-                for (i = 0; i < obj.products.length; i++) {
-                    var option = document.createElement("option");
-                    option.text = obj.products[i].name + "\t" + obj.products[i].kcal + " kcal"
-                    list.add(option)
-                }
+                JSON.parse(this.responseText).products
+                    .forEach(pr =>
+                        $("#ingredients").append($("<option>")
+                            .text(`${pr.name} ${pr.kcal} kcal`))
+                    );
             }
         };
 
