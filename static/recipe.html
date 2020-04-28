@@ -4,31 +4,60 @@
     <title>Foodculator 1.0</title>
     <link rel="icon" href="/static/icon.svg">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    <style>
+        th,
+        td {
+            padding: 5px;
+            text-align: left;
+        }
+
+        th {
+            background-color: lavender;
+        }
+
+        #recipe tr:last-child {
+            background-color: aliceblue;
+        }
+
+        #recipe input {
+            width: 100%;
+        }
+    </style>
+
 </head>
 
 <body onload="loadData()">
+    <h1>Create a new recipe</h1>
 
-    <h1>Create a new recipe:</h1>
+    <table id="recipe" style="width:40%">
+        <tr>
+            <th>Ingredient</th>
+            <th>Amount</th>
+        </tr>
+        <tr>
+            <td>
+                <input list="ingredients" id="getIngredient" placeholder="Choose an ingredient" autofocus>
+                <datalist id="ingredients"></datalist>
+            </td>
+            <td>
+                <input type="number" min="0" max="10000" value="0" id="gram" onkeydown="callOnEnter(addNextIngredient)">
+            </td>
+        </tr>
+    </table><br>
 
-    <h3>Add all ingredients:</h3>
-    <input list="ingredients" id="getIngredient">
-    <datalist id="ingredients"></datalist>
-    <input type="number" min="0" max="10000" value="0" id="gram" onkeydown="callOnEnter(addNextIngredient)">
-    <button onclick="addNextIngredient()">Add to recipe</button><br>
-
-    <h3>Recipe's ingredients:</h3>
-    <div id="recipe">
-    </div>
-
-    <h3>Choose a pot:</h3>
+    <span style="font-size: x-large;">Choose a &#127858;:</span>
     <div id="tableware">
+    </div><br>
+
+    <div>
+        <span style="font-size: x-large;">Total weight:</span>
+        <input type="number" min="1" max="10000" value="1" id="totalWeight" onkeydown="callOnEnter(calculate)">
+        <label for="totalWeight">grams</label>
     </div>
-
-    <h3>Input total weight:</h3>
-    <input type="number" min="1" max="10000" value="1" id="totalWeight" onkeydown="callOnEnter(calculate)">
-    <label for="totalWeight">grams</label><br><br>
-
+    <br>
     <button id="calculate" onclick="calculate()"> Calculate food energy </button><br>
+
     <label id="textResult"></label><br><br>
     <label id="calcResult"></label><br><br>
 
@@ -70,7 +99,7 @@
         }
 
         function loadTableware() {
-            addItemToTableware(0, 'tableware', "None", true);
+            addItemToTableware(0, 'tableware', "No pot", true);
 
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
@@ -107,15 +136,13 @@
                 return;
             }
 
-            let id = `i${allIngredients.length}`;
             let edit = $('<input type="number" min=0 max=10000>')
-                .attr("id", id)
                 .val(grams);
 
-            $('#recipe')
-                .append($("<label>").attr('for', id).text(product))
-                .append(edit)
-                .append("<br>");
+            $('#recipe tr:last').before($("<tr>")
+                .append($("<td>").text(product))
+                .append($("<td>").append(edit))
+            );
 
             allIngredients.push({
                 kcal: $(found[0]).attr("kcal"),
