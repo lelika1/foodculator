@@ -1,5 +1,6 @@
 #include <sqlite3.h>
 
+#include <csignal>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -32,6 +33,14 @@ std::vector<std::string> Split(const std::string& str,
     }
     result.push_back(str.substr(start, end));
     return result;
+}
+
+httplib::Server* server = nullptr;
+
+void signal_handler(int signal) {
+    if (server) {
+        server->stop();
+    }
 }
 
 int main(int argc, char** argv) {
@@ -202,6 +211,12 @@ int main(int argc, char** argv) {
 
     std::cout << "Foodculator version: " << version << std::endl;
     std::cout << "Listening on http://localhost:" << port << std::endl;
-    srv.listen("0.0.0.0", 1234);
+
+    server = &srv;
+    std::signal(SIGTERM, signal_handler);
+
+    srv.listen("0.0.0.0", port);
+
+    std::cout << "I'll be back!" << std::endl;
     return 0;
 }
