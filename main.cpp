@@ -38,7 +38,7 @@ int main(int argc, char** argv) {
                   << " path_to_static_files path_to_database" << std::endl;
         return 1;
     }
-
+    std::cout << "Working with sqlite db in " << argv[2] << std::endl;
     auto db = DB::Create(argv[2]);
     if (!db) {
         std::cerr << "A problem with " << argv[2] << " occured." << std::endl;
