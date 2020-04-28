@@ -1,3 +1,5 @@
+#include <sqlite3.h>
+
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -102,9 +104,17 @@ int main(int argc, char** argv) {
         };
 
         uint32_t kcal = std::stoi(params["kcal"]);
-        if (!db->InsertProduct({params["product"], kcal})) {
-            res.set_content("An ingredient wasn't added. SQL error occured.",
-                            "text/plain");
+        auto st = db->InsertProduct({params["product"], kcal});
+        if (st != SQLITE_OK) {
+            if (st == SQLITE_CONSTRAINT) {
+                res.set_content(
+                    "This ingredient already exists in the database.",
+                    "text/plain");
+            } else {
+                res.set_content(
+                    "An ingredient wasn't added. Some SQL error occured.",
+                    "text/plain");
+            }
             res.status = 500;
             return;
         }
@@ -154,9 +164,15 @@ int main(int argc, char** argv) {
         };
 
         uint32_t weight = std::stoi(params["weight"]);
-        if (!db->InsertTableware({params["name"], weight})) {
-            res.set_content("A pot wasn't added. SQL error occured.",
-                            "text/plain");
+        auto st = db->InsertTableware({params["name"], weight});
+        if (st != SQLITE_OK) {
+            if (st == SQLITE_CONSTRAINT) {
+                res.set_content("This pot already exists in the database.",
+                                "text/plain");
+            } else {
+                res.set_content("A pot wasn't added. Some SQL error occured.",
+                                "text/plain");
+            }
             res.status = 500;
             return;
         }
@@ -172,10 +188,10 @@ int main(int argc, char** argv) {
     if (char* v = std::getenv("VERSION"); v) {
         version = v;
     }
-    srv.Get("/version",
-            [&version](const httplib::Request& req, httplib::Response& res) {
-                res.set_content("Foodculator version: " + version, "text/plain");
-            });
+    srv.Get("/version", [&version](const httplib::Request& req,
+                                   httplib::Response& res) {
+        res.set_content("Foodculator version: " + version, "text/plain");
+    });
 
     srv.set_mount_point("/static", path_to_static.c_str());
 
@@ -183,7 +199,7 @@ int main(int argc, char** argv) {
     if (char* v = std::getenv("PORT"); v) {
         port = std::stoi(v);
     }
-    
+
     std::cout << "Foodculator version: " << version << std::endl;
     std::cout << "Listening on http://localhost:" << port << std::endl;
     srv.listen("0.0.0.0", 1234);

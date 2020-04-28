@@ -15,13 +15,16 @@ std::unique_ptr<DB> DB::Create(const std::string& path) {
 
     const char sql[] =
         R"*(CREATE TABLE IF NOT EXISTS INGREDIENTS(
-        ID           INTEGER   PRIMARY KEY   AUTOINCREMENT NOT NULL,
-        NAME         TEXT                                  NOT NULL,
-        KCAL         INTEGER   DEFAULT 0);
+            ID           INTEGER   PRIMARY KEY   AUTOINCREMENT NOT NULL,
+            NAME         TEXT                                  NOT NULL,
+            KCAL         INTEGER   DEFAULT 0,
+            UNIQUE (NAME, KCAL)
+        );
         CREATE TABLE IF NOT EXISTS TABLEWARE(
-        ID           INTEGER   PRIMARY KEY   AUTOINCREMENT NOT NULL,
-        NAME         TEXT                                  NOT NULL,
-        WEIGHT       INTEGER                               NOT NULL);
+            ID INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, NAME TEXT NOT NULL,
+            WEIGHT INTEGER NOT NULL,
+            UNIQUE (NAME, WEIGHT)
+        );
     )*";
 
     char* err_msg = 0;
@@ -42,7 +45,7 @@ DB::~DB() {
     }
 }
 
-bool DB::InsertProduct(const Ingredient& ingr) {
+int DB::InsertProduct(const Ingredient& ingr) {
     std::stringstream ss;
     ss << "INSERT INTO INGREDIENTS (NAME,KCAL) VALUES ('" << ingr.name_ << "', "
        << ingr.kcal_ << ");";
@@ -51,7 +54,7 @@ bool DB::InsertProduct(const Ingredient& ingr) {
     return Insert(sql.c_str());
 }
 
-bool DB::InsertTableware(const Tableware& tw) {
+int DB::InsertTableware(const Tableware& tw) {
     std::stringstream ss;
     ss << "INSERT INTO TABLEWARE (NAME,WEIGHT) VALUES ('" << tw.name_ << "', "
        << tw.weight_ << ");";
@@ -60,16 +63,16 @@ bool DB::InsertTableware(const Tableware& tw) {
     return Insert(sql.c_str());
 }
 
-bool DB::Insert(const char* sql) {
+int DB::Insert(const char* sql) {
     char* err_msg = 0;
     auto cb = [](void*, int, char**, char**) -> int { return 0; };
-    if (sqlite3_exec(db_, sql, cb, 0, &err_msg) != SQLITE_OK) {
-        std::cerr << "SQL error: " << err_msg << std::endl;
+    auto st = sqlite3_exec(db_, sql, cb, 0, &err_msg);
+    if (st != SQLITE_OK) {
+        std::cerr << st << ": SQL error: " << err_msg << std::endl;
         sqlite3_free(err_msg);
-        return false;
     }
 
-    return true;
+    return st;
 }
 
 std::vector<Ingredient> DB::GetIngredients() {
