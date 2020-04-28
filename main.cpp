@@ -6,12 +6,13 @@
 #include <sstream>
 #include <streambuf>
 #include <string>
+#include <unordered_map>
 
 #include "db/db.h"
 #include "httplib/httplib.h"
 #include "json11/json11.hpp"
 
-namespace {
+    namespace {
 std::string ReadHtml(const std::string& path) {
     std::ifstream in(path);
     std::string str{std::istreambuf_iterator<char>(in),

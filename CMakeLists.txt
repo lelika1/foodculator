@@ -12,7 +12,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
 add_library(Httplib STATIC "${CMAKE_BINARY_DIR}/httplib/httplib.cc")
 
-set_target_properties(foodculator
+set_target_properties(foodculator Httplib
 	PROPERTIES
 	CXX_STANDARD 17
 	CXX_STANDARD_REQUIRED ON
@@ -23,7 +23,7 @@ SET(CMAKE_CXX_FLAGS "-Wall -fno-rtti -O2" )
 add_subdirectory(db)
 add_subdirectory(json11)
 
-target_link_libraries(foodculator DbLib)
-target_link_libraries(foodculator json11)
-target_link_libraries(foodculator Httplib)
-target_link_libraries(foodculator pthread)
+target_link_libraries(foodculator DbLib 
+								  Httplib 
+								  json11 
+								  pthread)
