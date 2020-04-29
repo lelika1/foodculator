@@ -2,6 +2,8 @@
 #include <string>
 #include <vector>
 
+#include "json11.hpp"
+
 class sqlite3;
 
 struct Ingredient {
@@ -10,6 +12,11 @@ struct Ingredient {
 
     Ingredient(const std::string& name, uint32_t kcal)
         : name_(name), kcal_(kcal) {}
+
+    json11::Json to_json() const {
+        return json11::Json::object{{"name", name_},
+                                    {"kcal", std::to_string(kcal_)}};
+    }
 };
 
 struct Tableware {
@@ -18,6 +25,11 @@ struct Tableware {
 
     Tableware(const std::string& name, uint32_t weight)
         : name_(name), weight_(weight) {}
+
+    json11::Json to_json() const {
+        return json11::Json::object{{"name", name_},
+                                    {"weight", std::to_string(weight_)}};
+    }
 };
 
 class DB {

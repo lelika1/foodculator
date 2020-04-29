@@ -22,20 +22,6 @@ std::string ReadHtml(const std::string& path) {
 }
 }  // namespace
 
-std::vector<std::string> Split(const std::string& str,
-                               const std::string& delimiter) {
-    std::vector<std::string> result;
-    size_t start = 0;
-    auto end = str.find(delimiter);
-    while (end != std::string::npos) {
-        result.push_back(str.substr(start, end - start));
-        start = end + delimiter.length();
-        end = str.find(delimiter, start);
-    }
-    result.push_back(str.substr(start, end));
-    return result;
-}
-
 httplib::Server* server = nullptr;
 
 void signal_handler(int signal) {
@@ -75,37 +61,32 @@ int main(int argc, char** argv) {
                 });
     }
 
-    srv.Get("/get_ingredients",
-            [&db](const httplib::Request& req, httplib::Response& res) {
-                std::stringstream ss;
-                ss << R"({"products":[)";
-                const auto& products = db->GetIngredients();
-                for (size_t i = 0; i < products.size(); ++i) {
-                    ss << R"({"name":")" << products[i].name_ << R"(", "kcal":)"
-                       << products[i].kcal_ << "}";
-                    if (i != products.size() - 1) {
-                        ss << ",";
-                    }
-                }
-                ss << R"(]})";
-
-                res.set_content(ss.str(), "text/json");
-            });
+    srv.Get("/get_ingredients", [&db](const httplib::Request& req,
+                                      httplib::Response& res) {
+        res.set_content(json11::Json(db->GetIngredients()).dump(), "text/json");
+    });
 
     srv.Post("/add_ingredient", [&db](const httplib::Request& req,
                                       httplib::Response& res) {
-        std::unordered_map<std::string, std::string> params;
-        for (const auto& e : Split(req.body, "&")) {
-            auto element = Split(e, "=");
-            if (element.size() != 2) {
-                res.status = 400;
-                return;
-            }
+        std::string err_msg;
+        json11::Json js = json11::Json::parse(req.body, err_msg);
 
-            params[element[0]] = element[1];
+        if (!err_msg.empty() ||
+            !js.has_shape({{"product", json11::Json::STRING},
+                           {"kcal", json11::Json::NUMBER}},
+                          err_msg)) {
+            std::cout << "Error: " << err_msg << std::endl;
+
+            res.set_content(
+                "An ingredient wasn't added. Some information is missing.",
+                "text/plain");
+            res.status = 400;
+            return;
         }
 
-        if (params["product"].empty() || params["kcal"].empty()) {
+        std::string name = js["product"].string_value();
+        uint32_t kcal = js["kcal"].int_value();
+        if (name.empty()) {
             res.set_content(
                 "An ingredient wasn't added. Some information is missing.",
                 "text/plain");
@@ -113,8 +94,7 @@ int main(int argc, char** argv) {
             return;
         };
 
-        uint32_t kcal = std::stoi(params["kcal"]);
-        auto st = db->InsertProduct({params["product"], kcal});
+        auto st = db->InsertProduct({name, kcal});
         if (st != SQLITE_OK) {
             if (st == SQLITE_CONSTRAINT) {
                 res.set_content(
@@ -130,51 +110,44 @@ int main(int argc, char** argv) {
         }
 
         std::stringstream ss;
-        ss << "A new ingredient '" << params["product"] << "' with " << kcal
+        ss << "A new ingredient '" << name << "' with " << kcal
            << " kcal for 100 g was added.";
 
         res.set_content(ss.str(), "text/plain");
     });
 
-    srv.Get("/get_tableware",
-            [&db](const httplib::Request& req, httplib::Response& res) {
-                std::stringstream ss;
-                ss << R"({"tableware":[)";
-                const auto& tableware = db->GetTableware();
-                for (size_t i = 0; i < tableware.size(); ++i) {
-                    ss << R"({"name":")" << tableware[i].name_
-                       << R"(", "weight":)" << tableware[i].weight_ << "}";
-                    if (i != tableware.size() - 1) {
-                        ss << ",";
-                    }
-                }
-                ss << R"(]})";
-
-                res.set_content(ss.str(), "text/json");
-            });
+    srv.Get("/get_tableware", [&db](const httplib::Request& req,
+                                    httplib::Response& res) {
+        res.set_content(json11::Json(db->GetTableware()).dump(), "text/json");
+    });
 
     srv.Post("/add_tableware", [&db](const httplib::Request& req,
                                      httplib::Response& res) {
-        std::unordered_map<std::string, std::string> params;
-        for (const auto& e : Split(req.body, "&")) {
-            auto element = Split(e, "=");
-            if (element.size() != 2) {
-                res.status = 400;
-                return;
-            }
+        std::string err_msg;
+        json11::Json js = json11::Json::parse(req.body, err_msg);
 
-            params[element[0]] = element[1];
+        if (!err_msg.empty() ||
+            !js.has_shape({{"name", json11::Json::STRING},
+                           {"weight", json11::Json::NUMBER}},
+                          err_msg)) {
+            std::cout << "Error: " << err_msg << std::endl;
+
+            res.set_content("A pot wasn't added. Some information is missing.",
+                            "text/plain");
+            res.status = 400;
+            return;
         }
 
-        if (params["name"].empty() || params["weight"].empty()) {
+        std::string name = js["name"].string_value();
+        uint32_t weight = js["weight"].int_value();
+        if (name.empty()) {
             res.set_content("A pot wasn't added. Some information is missing.",
                             "text/plain");
             res.status = 500;
             return;
         };
 
-        uint32_t weight = std::stoi(params["weight"]);
-        auto st = db->InsertTableware({params["name"], weight});
+        auto st = db->InsertTableware({name, weight});
         if (st != SQLITE_OK) {
             if (st == SQLITE_CONSTRAINT) {
                 res.set_content("This pot already exists in the database.",
@@ -188,7 +161,7 @@ int main(int argc, char** argv) {
         }
 
         std::stringstream ss;
-        ss << "A new pot '" << params["name"] << "' with weight " << weight
+        ss << "A new pot '" << name << "' with weight " << weight
            << " g was added.";
 
         res.set_content(ss.str(), "text/plain");

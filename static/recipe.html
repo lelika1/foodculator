@@ -71,12 +71,11 @@
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
-                    JSON.parse(this.responseText).products
-                        .forEach(pr =>
-                            $("#ingredients").append($("<option>")
-                                .attr('kcal', pr.kcal)
-                                .text(`${pr.name} ${pr.kcal} kcal`))
-                        );
+                    JSON.parse(this.responseText).forEach(pr =>
+                        $("#ingredients").append($("<option>")
+                            .attr('kcal', pr.kcal)
+                            .text(`${pr.name} ${pr.kcal} kcal`))
+                    );
                 }
             };
 
@@ -104,11 +103,10 @@
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
-                    JSON.parse(this.responseText).tableware
-                        .forEach(tw => {
-                            let text = `${tw.name} ${tw.weight} g`;
-                            addItemToTableware(tw.weight, 'tableware', text);
-                        });
+                    JSON.parse(this.responseText).forEach(tw => {
+                        let text = `${tw.name} ${tw.weight} g`;
+                        addItemToTableware(tw.weight, 'tableware', text);
+                    });
                 }
             };
 

@@ -8,4 +8,5 @@ set_target_properties(DbLib
 	CXX_STANDARD_REQUIRED ON
 )
 
-target_link_libraries(DbLib sqlite3)
+include_directories(json11)
+target_link_libraries(DbLib sqlite3 json11)

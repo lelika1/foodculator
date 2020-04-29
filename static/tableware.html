@@ -43,17 +43,19 @@
         };
 
         xhttp.open("POST", "/add_tableware", true);
-        xhttp.send(`name=${$("#name").val()}&weight=${$("#weight").val()}`);
+        xhttp.send(JSON.stringify({
+            "name": $("#name").val(),
+            "weight": parseInt($("#weight").val())
+        }));
     }
 
     function getTableware() {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
-                JSON.parse(this.responseText).tableware
-                    .forEach(tw => {
-                        $("#tableware").append($("<option>").text(`${tw.name} ${tw.weight} g`));
-                    });
+                JSON.parse(this.responseText).forEach(tw => {
+                    $("#tableware").append($("<option>").text(`${tw.name} ${tw.weight} g`));
+                });
             }
         }
 
