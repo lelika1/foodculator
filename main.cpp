@@ -75,22 +75,22 @@ int main(int argc, char** argv) {
                 });
     }
 
-    srv.Post("/get_ingredients",
-             [&db](const httplib::Request& req, httplib::Response& res) {
-                 std::stringstream ss;
-                 ss << R"({"products":[)";
-                 const auto& products = db->GetIngredients();
-                 for (size_t i = 0; i < products.size(); ++i) {
-                     ss << R"({"name":")" << products[i].name_
-                        << R"(", "kcal":)" << products[i].kcal_ << "}";
-                     if (i != products.size() - 1) {
-                         ss << ",";
-                     }
-                 }
-                 ss << R"(]})";
+    srv.Get("/get_ingredients",
+            [&db](const httplib::Request& req, httplib::Response& res) {
+                std::stringstream ss;
+                ss << R"({"products":[)";
+                const auto& products = db->GetIngredients();
+                for (size_t i = 0; i < products.size(); ++i) {
+                    ss << R"({"name":")" << products[i].name_ << R"(", "kcal":)"
+                       << products[i].kcal_ << "}";
+                    if (i != products.size() - 1) {
+                        ss << ",";
+                    }
+                }
+                ss << R"(]})";
 
-                 res.set_content(ss.str(), "text/json");
-             });
+                res.set_content(ss.str(), "text/json");
+            });
 
     srv.Post("/add_ingredient", [&db](const httplib::Request& req,
                                       httplib::Response& res) {
@@ -136,22 +136,22 @@ int main(int argc, char** argv) {
         res.set_content(ss.str(), "text/plain");
     });
 
-    srv.Post("/get_tableware",
-             [&db](const httplib::Request& req, httplib::Response& res) {
-                 std::stringstream ss;
-                 ss << R"({"tableware":[)";
-                 const auto& tableware = db->GetTableware();
-                 for (size_t i = 0; i < tableware.size(); ++i) {
-                     ss << R"({"name":")" << tableware[i].name_
-                        << R"(", "weight":)" << tableware[i].weight_ << "}";
-                     if (i != tableware.size() - 1) {
-                         ss << ",";
-                     }
-                 }
-                 ss << R"(]})";
+    srv.Get("/get_tableware",
+            [&db](const httplib::Request& req, httplib::Response& res) {
+                std::stringstream ss;
+                ss << R"({"tableware":[)";
+                const auto& tableware = db->GetTableware();
+                for (size_t i = 0; i < tableware.size(); ++i) {
+                    ss << R"({"name":")" << tableware[i].name_
+                       << R"(", "weight":)" << tableware[i].weight_ << "}";
+                    if (i != tableware.size() - 1) {
+                        ss << ",";
+                    }
+                }
+                ss << R"(]})";
 
-                 res.set_content(ss.str(), "text/json");
-             });
+                res.set_content(ss.str(), "text/json");
+            });
 
     srv.Post("/add_tableware", [&db](const httplib::Request& req,
                                      httplib::Response& res) {
