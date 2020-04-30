@@ -109,11 +109,7 @@ int main(int argc, char** argv) {
             return;
         }
 
-        std::stringstream ss;
-        ss << "A new ingredient '" << name << "' with " << kcal
-           << " kcal for 100 g was added.";
-
-        res.set_content(ss.str(), "text/plain");
+        res.status = 200;
     });
 
     srv.Get("/get_tableware", [&db](const httplib::Request& req,
@@ -160,11 +156,7 @@ int main(int argc, char** argv) {
             return;
         }
 
-        std::stringstream ss;
-        ss << "A new pot '" << name << "' with weight " << weight
-           << " g was added.";
-
-        res.set_content(ss.str(), "text/plain");
+        res.status = 200;
     });
 
     std::string version = "UNKNOWN";
