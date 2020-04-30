@@ -84,7 +84,7 @@
             <input type="text" id="product"><br><br>
 
             <span style="font-size: large;">kcal:</span>
-            <input type="number" min="0" max="10000" value="0" id="kcal" onkeydown="callOnEnter(addProduct)">
+            <input type="number" min="0" max="10000" value="0" id="kcal" onkeydown="callOnEnter(addNewProduct)">
             <span style="font-size: large;">for 100g</span><br><br>
 
             <input type="submit" value="Add a new &#129472;" onclick="addNewProduct()">
@@ -243,7 +243,7 @@
             }));
         }
 
-        function addProduct() {
+        function addNewProduct() {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
                 $("#newProductResponse").text(this.responseText);
