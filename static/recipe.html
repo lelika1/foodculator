@@ -23,43 +23,87 @@
         #recipe input {
             width: 100%;
         }
+
+        #left {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 60%;
+        }
+
+        #right {
+            position: absolute;
+            right: 0;
+            top: 10%;
+            width: 40%;
+        }
     </style>
 
 </head>
 
 <body onload="loadData()">
-    <h1>Create a new recipe</h1>
+    <div id="left">
+        <h1>Create a new recipe</h1>
+        <table id="recipe" style="width:80%">
+            <tr>
+                <th>Ingredient</th>
+                <th>Amount</th>
+            </tr>
+            <tr>
+                <td>
+                    <input list="ingredients" id="getIngredient" placeholder="Choose an ingredient" autofocus>
+                    <datalist id="ingredients"></datalist>
+                </td>
+                <td>
+                    <input type="number" min="0" max="10000" value="0" id="gram"
+                        onkeydown="callOnEnter(addNextIngredient)">
+                </td>
+            </tr>
+        </table><br>
 
-    <table id="recipe" style="width:40%">
-        <tr>
-            <th>Ingredient</th>
-            <th>Amount</th>
-        </tr>
-        <tr>
-            <td>
-                <input list="ingredients" id="getIngredient" placeholder="Choose an ingredient" autofocus>
-                <datalist id="ingredients"></datalist>
-            </td>
-            <td>
-                <input type="number" min="0" max="10000" value="0" id="gram" onkeydown="callOnEnter(addNextIngredient)">
-            </td>
-        </tr>
-    </table><br>
+        <span style="font-size: x-large;">Choose a &#127858;:</span>
+        <div id="tableware">
+        </div><br>
 
-    <span style="font-size: x-large;">Choose a &#127858;:</span>
-    <div id="tableware">
-    </div><br>
+        <div>
+            <span style="font-size: x-large;">Total weight:</span>
+            <input type="number" min="1" max="10000" value="1" id="totalWeight" onkeydown="callOnEnter(calculate)">
+            <label for="totalWeight">grams</label>
+        </div>
+        <br>
+        <button id="calculate" onclick="calculate()"> Calculate food energy </button><br>
 
-    <div>
-        <span style="font-size: x-large;">Total weight:</span>
-        <input type="number" min="1" max="10000" value="1" id="totalWeight" onkeydown="callOnEnter(calculate)">
-        <label for="totalWeight">grams</label>
+        <label id="textResult"></label><br><br>
+        <label id="calcResult"></label><br><br>
     </div>
-    <br>
-    <button id="calculate" onclick="calculate()"> Calculate food energy </button><br>
 
-    <label id="textResult"></label><br><br>
-    <label id="calcResult"></label><br><br>
+    <div id="right">
+        <a href="javascript:hideDiv('newProductDiv');" style="font-size: x-large;">Add a new &#129472;</a>
+        <div id="newProductDiv" style="display: none;">
+            <span style="font-size: large;">Product:</span>
+            <input type="text" id="product"><br><br>
+
+            <span style="font-size: large;">kcal:</span>
+            <input type="number" min="0" max="10000" value="0" id="kcal" onkeydown="callOnEnter(addProduct)">
+            <span style="font-size: large;">for 100g</span><br><br>
+
+            <input type="submit" value="Add a new &#129472;" onclick="addNewProduct()">
+            <label id="newProductResponse"></label>
+        </div><br><br>
+
+        <a href="javascript:hideDiv('newTwDiv');" style="font-size: x-large;">Add a new &#127858;</a>
+        <div id="newTwDiv" style="display: none;">
+            <span style="font-size: large;">Name:</span>
+            <input type="text" id="newTwName"><br><br>
+
+            <span style="font-size: large;">Weight:</span>
+            <input type="number" min="0" max="10000" value="0" id="newTwWeight" onkeydown="callOnEnter(addNewTw)">
+            <span style="font-size: large;">grams</span><br><br>
+
+            <input type="submit" value="Add new &#127858;" onclick="addNewTw()">
+            <label id="newTwResponse"></label>
+        </div>
+    </div>
 
     <script>
         function loadData() {
@@ -176,6 +220,60 @@
             var text = `(${result.join(" + ")}) * 100 / (${totalWeight}-${twWeight}) = ${totalEnergy}`;
             $("#textResult").text(text);
         }
+
+        function addNewTw() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                $("#newTwResponse").text(this.responseText);
+                if (this.readyState == 4 && this.status == 200) {
+                    let weight = $("#newTwWeight").val();
+                    let name = $("#newTwName").val();
+                    addItemToTableware(weight, 'tableware',
+                        `${$("#newTwName").val()} ${$("#newTwWeight").val()} g`);
+
+                    $("#newTwWeight").val(0);
+                    $("#newTwName").val('').focus();
+                }
+            };
+
+            xhttp.open("POST", "/add_tableware", true);
+            xhttp.send(JSON.stringify({
+                "name": $("#newTwName").val(),
+                "weight": parseInt($("#newTwWeight").val())
+            }));
+        }
+
+        function addProduct() {
+            var xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                $("#newProductResponse").text(this.responseText);
+                if (this.readyState == 4 && this.status == 200) {
+                    let kcal = $("#kcal").val();
+                    $("#ingredients").append($("<option>")
+                        .attr('kcal', kcal)
+                        .text(`${$("#product").val()} ${kcal} kcal`))
+
+                    $("#kcal").val(0);
+                    $("#product").val('').focus();
+                }
+            };
+
+            xhttp.open("POST", "/add_ingredient", true);
+            xhttp.send(JSON.stringify({
+                "product": $("#product").val(),
+                "kcal": parseInt($("#kcal").val())
+            }));
+        }
+
+        function hideDiv(divName) {
+            var div = $(`#${divName}`);
+            if (div.css("display") === "none") {
+                div.attr("style", "display:block");
+            } else {
+                div.attr("style", "display:none");
+            }
+        }
+
     </script>
 </body>
 
