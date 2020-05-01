@@ -56,6 +56,7 @@
         <tr>
             <th>Product</th>
             <th>Calorie</th>
+            <th>Delete</th>
         </tr>
 
         <tr>
@@ -75,6 +76,7 @@
     function addProductToTable(name, kcal, dbId) {
         let dltBtn = $("<input type=submit value=Delete>")
             .attr("dbId", dbId)
+            .attr("desc", `(${name}, ${kcal})`)
             .attr("onclick", " DeleteProduct($(this))");
 
         $('#ingredients').append($("<tr>")
@@ -125,6 +127,10 @@
     }
 
     function DeleteProduct(btn) {
+        if (!confirm(`Do you want to delete ingredient ${btn.attr("desc")}?`)) {
+            return;
+        }
+
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
             $("#deleteResponse").text(this.response);
