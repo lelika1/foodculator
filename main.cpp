@@ -22,25 +22,27 @@ std::string ReadHtml(const std::string& path) {
 // TODO(luckygeck): Move to separate file.
 std::string RenderDialogflowResponse(std::vector<std::string> items) {
     std::vector<json11::Json> jsons;
-    for (const auto& text : items) {
-        jsons.emplace_back(json11::Json::object{
-            {"simpleResponse", json11::Json::object{{"textToSpeech", text}}}});
+    std::stringstream text;
+    for (const auto& item : items) {
+        text << item << ";\n";
     }
+    auto simpleResponse = json11::Json::object{
+        {"simpleResponse", json11::Json::object{{"textToSpeech", text.str()}}}};
 
     json11::Json ret = json11::Json::object{
         {"fulfillmentMessages",
          json11::Json::array{
              json11::Json::object{
-                 {"text", json11::Json::object{{"text", std::move(items)}}}},
+                 {"text", json11::Json::object{{"text", {text.str()}}}}},
          }},
         {
             "payload",
             json11::Json::object{
-                {"google",
-                 json11::Json::object{{
-                     "richResponse",
-                     json11::Json::object{{"items", std::move(jsons)}},
-                 }}}},
+                {"google", json11::Json::object{{
+                               "richResponse",
+                               json11::Json::object{
+                                   {"items", {std::move(simpleResponse)}}},
+                           }}}},
         },
     };
     return ret.dump();
