@@ -62,6 +62,7 @@
             <td colspan="2"></td>
         </tr>
     </table>
+    <label id="deleteResponse" style="color:red;"></label>
 </body>
 
 <script>
@@ -71,18 +72,24 @@
         }
     }
 
+    function addProductToTable(name, kcal, dbId) {
+        let dltBtn = $("<input type=submit value=Delete>")
+            .attr("dbId", dbId)
+            .attr("onclick", " DeleteProduct($(this))");
+
+        $('#ingredients').append($("<tr>")
+            .append($("<td>").text(name))
+            .append($("<td>").text(kcal))
+            .append($("<td>").append(dltBtn))
+        );
+    }
+
     function addProduct() {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
             if (this.readyState == 4) {
                 if (this.status == 200) {
-                    let dltBtn = $("<input type=submit value=Delete>");
-                    $('#ingredients').append($("<tr>")
-                        .attr("dbId", parseInt(this.response))
-                        .append($("<td>").text($("#product").val()))
-                        .append($("<td>").text($("#kcal").val()))
-                        .append($("<td>").append(dltBtn))
-                    )
+                    addProductToTable($("#product").val(), $("#kcal").val(), parseInt(this.response));
 
                     $("#prNameResponse").text($("#product").val());
                     $("#response").text(" successfully added.").attr("style", "color:green;");
@@ -107,15 +114,8 @@
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
-                JSON.parse(this.responseText).forEach(pr => {
-                    let dltBtn = $("<input type=submit value=Delete>");
-                    $('#ingredients').append($("<tr>")
-                        .attr("dbId", pr.id)
-                        .append($("<td>").text(pr.name))
-                        .append($("<td>").text(pr.kcal))
-                        .append($("<td>").append(dltBtn))
-                    )
-                }
+                JSON.parse(this.responseText).forEach(pr =>
+                    addProductToTable(pr.name, pr.kcal, pr.id)
                 );
             }
         }
@@ -123,6 +123,20 @@
         xhttp.open("GET", "/get_ingredients", true);
         xhttp.send();
     }
+
+    function DeleteProduct(btn) {
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function () {
+            $("#deleteResponse").text(this.response);
+            if (this.readyState == 4 && this.status == 200) {
+                btn.closest("tr").remove();
+            }
+        }
+
+        xhttp.open("DELETE", `/ingredient/${btn.attr("dbId")}`, true);
+        xhttp.send();
+    }
+
 </script>
 
 </html>
