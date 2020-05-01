@@ -128,6 +128,43 @@ int main(int argc, char** argv) {
         res.set_content(json11::Json(db->GetTableware()).dump(), "text/json");
     });
 
+    srv.Post("/dialogflow", [&db](const httplib::Request& req,
+                                  httplib::Response& res) {
+        std::string err;
+        const json11::Json in = json11::Json::parse(req.body, err);
+        if (!err.empty()) {
+            res.set_content("Failed to parse input as json: " + err,
+                            "text/plain");
+            res.status = 400;
+            return;
+        }
+
+        const std::string& resp_id = in["responseId"].string_value();
+        const std::string& session = in["session"].string_value();
+        const auto& query = in["queryResult"];
+        const std::string& query_text = query["queryText"].string_value();
+        const std::string& intent_name =
+            query["intent"]["displayName"].string_value();
+
+        std::cout << "[dialogflow] id=" << resp_id << " session=" << session
+                  << " query=" << query_text << " intent=" << intent_name
+                  << std::endl;
+
+        std::vector<std::string> pots{"Ингридиенты:"};
+        for (const auto& pot : db->GetIngredients()) {
+            pots.emplace_back(pot.name_ + " " + std::to_string(pot.kcal_) +
+                              "K");
+        }
+
+        json11::Json ret = json11::Json::object{
+            {"fulfillmentMessages",
+             json11::Json::array{
+                 json11::Json::object{
+                     {"text", json11::Json::object{{"text", std::move(pots)}}}},
+             }}};
+        res.set_content(ret.dump(), "text/json; charset=utf-8");
+    });
+
     srv.Post("/add_tableware", [&db](const httplib::Request& req,
                                      httplib::Response& res) {
         std::string err_msg;
