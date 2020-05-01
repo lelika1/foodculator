@@ -18,6 +18,34 @@ std::string ReadHtml(const std::string& path) {
     in.close();
     return str;
 }
+
+// TODO(luckygeck): Move to separate file.
+std::string RenderDialogflowResponse(std::vector<std::string> items) {
+    std::vector<json11::Json> jsons;
+    for (const auto& text : items) {
+        jsons.emplace_back(json11::Json::object{
+            {"simpleResponse", json11::Json::object{{"textToSpeech", text}}}});
+    }
+
+    json11::Json ret = json11::Json::object{
+        {"fulfillmentMessages",
+         json11::Json::array{
+             json11::Json::object{
+                 {"text", json11::Json::object{{"text", std::move(items)}}}},
+         }},
+        {
+            "payload",
+            json11::Json::object{
+                {"google",
+                 json11::Json::object{{
+                     "richResponse",
+                     json11::Json::object{{"items", std::move(jsons)}},
+                 }}}},
+        },
+    };
+    return ret.dump();
+}
+
 }  // namespace
 
 httplib::Server* server = nullptr;
@@ -150,19 +178,24 @@ int main(int argc, char** argv) {
                   << " query=" << query_text << " intent=" << intent_name
                   << std::endl;
 
-        std::vector<std::string> pots{"Ингридиенты:"};
-        for (const auto& pot : db->GetIngredients()) {
-            pots.emplace_back(pot.name_ + " " + std::to_string(pot.kcal_) +
-                              "K");
+        std::vector<std::string> items;
+        if (intent_name == "ingredients") {
+            for (const auto& ingredient : db->GetIngredients()) {
+                items.emplace_back(ingredient.name_ + " по " +
+                                   std::to_string(ingredient.kcal_) +
+                                   " калории");
+            }
+        } else if (intent_name == "pots") {
+            for (const auto& pot : db->GetTableware()) {
+                items.emplace_back(pot.name_ + " по " +
+                                   std::to_string(pot.weight_) + " грам");
+            }
+        } else {
+            // This intent is not supported.
+            return;
         }
-
-        json11::Json ret = json11::Json::object{
-            {"fulfillmentMessages",
-             json11::Json::array{
-                 json11::Json::object{
-                     {"text", json11::Json::object{{"text", std::move(pots)}}}},
-             }}};
-        res.set_content(ret.dump(), "text/json; charset=utf-8");
+        res.set_content(RenderDialogflowResponse(items),
+                        "text/json; charset=utf-8");
     });
 
     srv.Post("/add_tableware", [&db](const httplib::Request& req,
