@@ -33,17 +33,19 @@ std::string RenderDialogflowResponse(std::vector<std::string> items) {
         {"fulfillmentMessages",
          json11::Json::array{
              json11::Json::object{
-                 {"text", json11::Json::object{{"text", {text.str()}}}}},
+                 {"text",
+                  json11::Json::object{
+                      {"text", json11::Json::array{text.str()}}}}},
          }},
         {
             "payload",
             json11::Json::object{
-                {"google",
-                 json11::Json::object{{
-                     "richResponse",
-                     json11::Json::object{
-                         {"items", json11::Json::array{std::move(simpleResponse)}}},
-                 }}}},
+                {"google", json11::Json::object{{
+                               "richResponse",
+                               json11::Json::object{
+                                   {"items", json11::Json::array{std::move(
+                                                 simpleResponse)}}},
+                           }}}},
         },
     };
     return ret.dump();
