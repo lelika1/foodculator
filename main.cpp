@@ -88,7 +88,7 @@ int main(int argc, char** argv) {
             res.set_content(
                 "An ingredient wasn't added. Some information is missing.",
                 "text/plain");
-            res.status = 500;
+            res.status = 400;
             return;
         };
 
@@ -108,6 +108,18 @@ int main(int argc, char** argv) {
         }
 
         res.set_content(std::to_string(result.id_), "text/plain");
+        res.status = 200;
+    });
+
+    srv.Delete(R"(/ingredient/(\d+))", [&db](const httplib::Request& req,
+                                             httplib::Response& res) {
+        auto id = std::stoi(req.matches[1].str());
+        if (!db->DeleteProduct(id)) {
+            res.set_content("A pot wasn't deleted. Some SQL error occured.",
+                            "text/plain");
+            res.status = 500;
+            return;
+        }
         res.status = 200;
     });
 
@@ -138,7 +150,7 @@ int main(int argc, char** argv) {
         if (name.empty()) {
             res.set_content("A pot wasn't added. Some information is missing.",
                             "text/plain");
-            res.status = 500;
+            res.status = 400;
             return;
         };
 
@@ -159,10 +171,24 @@ int main(int argc, char** argv) {
         res.status = 200;
     });
 
+    srv.Delete(R"(/tableware/(\d+))", [&db](const httplib::Request& req,
+                                            httplib::Response& res) {
+        int id = std::stoi(req.matches[1].str());
+        if (!db->DeleteTableware(id)) {
+            res.set_content(
+                "An ingredient wasn't deleted. Some SQL error occured.",
+                "text/plain");
+            res.status = 500;
+            return;
+        }
+        res.status = 200;
+    });
+
     std::string version = "UNKNOWN";
     if (char* v = std::getenv("VERSION"); v) {
         version = v;
     }
+
     srv.Get("/version", [&version](const httplib::Request& req,
                                    httplib::Response& res) {
         res.set_content("Foodculator version: " + version, "text/plain");

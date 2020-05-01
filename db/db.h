@@ -53,6 +53,9 @@ class DB {
     std::vector<Ingredient> GetIngredients();
     std::vector<Tableware> GetTableware();
 
+    bool DeleteProduct(size_t id);
+    bool DeleteTableware(size_t id);
+
    private:
     explicit DB(sqlite3* db) : db_(db) {}
 
@@ -61,5 +64,6 @@ class DB {
     template <class T>
     std::vector<T> SelectAll(const char* sql);
 
+    bool Delete(const char* sql);
     sqlite3* db_;
 };

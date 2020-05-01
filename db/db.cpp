@@ -68,7 +68,7 @@ DB::Result DB::Insert(const char* sql) {
     auto cb = [](void*, int, char**, char**) -> int { return 0; };
     auto st = sqlite3_exec(db_, sql, cb, 0, &err_msg);
     if (st != SQLITE_OK) {
-        std::cerr << st << ": SQL error: " << err_msg << std::endl;
+        std::cerr << "SQL error : " << err_msg << std::endl;
         sqlite3_free(err_msg);
         return Result{(st == SQLITE_CONSTRAINT) ? Result::DUPLICATE
                                                 : Result::ERROR};
@@ -105,4 +105,33 @@ std::vector<T> DB::SelectAll(const char* sql) {
         sqlite3_free(err_msg);
     }
     return results;
+}
+
+bool DB::DeleteProduct(size_t id) {
+    std::stringstream ss;
+    ss << "DELETE from INGREDIENTS where ID = " << id << ";";
+    std::string sql = ss.str();
+
+    return Delete(sql.c_str());
+}
+
+bool DB::DeleteTableware(size_t id) {
+    std::stringstream ss;
+    ss << "DELETE from TABLEWARE where ID = " << id << ";";
+    std::string sql = ss.str();
+
+    return Delete(sql.c_str());
+}
+
+bool DB::Delete(const char* sql) {
+    char* err_msg = 0;
+    auto cb = [](void*, int, char**, char**) -> int { return 0; };
+    auto st = sqlite3_exec(db_, sql, cb, 0, &err_msg);
+    if (st != SQLITE_OK) {
+        std::cerr << "SQL error: " << err_msg << std::endl;
+        sqlite3_free(err_msg);
+        return false;
+    }
+
+    return true;
 }
