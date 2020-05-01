@@ -20,14 +20,10 @@ std::string ReadHtml(const std::string& path) {
 }
 
 // TODO(luckygeck): Move to separate file.
-std::string RenderDialogflowResponse(std::vector<std::string> items) {
+std::string RenderDialogflowResponse(std::string text) {
     std::vector<json11::Json> jsons;
-    std::stringstream text;
-    for (const auto& item : items) {
-        text << item << ";\n";
-    }
     auto simpleResponse = json11::Json::object{
-        {"simpleResponse", json11::Json::object{{"textToSpeech", text.str()}}}};
+        {"simpleResponse", json11::Json::object{{"textToSpeech", text}}}};
 
     json11::Json ret = json11::Json::object{
         {"fulfillmentMessages",
@@ -35,7 +31,7 @@ std::string RenderDialogflowResponse(std::vector<std::string> items) {
              json11::Json::object{
                  {"text",
                   json11::Json::object{
-                      {"text", json11::Json::array{text.str()}}}}},
+                      {"text", json11::Json::array{std::move(text)}}}}},
          }},
         {
             "payload",
@@ -183,23 +179,24 @@ int main(int argc, char** argv) {
                   << " query=" << query_text << " intent=" << intent_name
                   << std::endl;
 
-        std::vector<std::string> items;
+        std::stringstream text;
         if (intent_name == "ingredients") {
+            text << "Наши ингредиенты:";
             for (const auto& ingredient : db->GetIngredients()) {
-                items.emplace_back(ingredient.name_ + " по " +
-                                   std::to_string(ingredient.kcal_) +
-                                   " калории");
+                text << "\n"
+                     << ingredient.name_ << " по " << ingredient.kcal_
+                     << " калории";
             }
         } else if (intent_name == "pots") {
+            text << "Наша посуда:";
             for (const auto& pot : db->GetTableware()) {
-                items.emplace_back(pot.name_ + " по " +
-                                   std::to_string(pot.weight_) + " грам");
+                text << "\n" << pot.name_ << " по " << pot.weight_ << " грам";
             }
         } else {
             // This intent is not supported.
             return;
         }
-        res.set_content(RenderDialogflowResponse(items),
+        res.set_content(RenderDialogflowResponse(text.str()),
                         "text/json; charset=utf-8");
     });
 
