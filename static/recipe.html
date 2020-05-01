@@ -75,7 +75,8 @@
         <div>
             <label id="textResult"></label><br><br>
             <label id="calcResult"></label>
-            <label id="finalKcal"></label><br><br>
+            <label id="finalKcalMsg"></label><br><br>
+            <label id="totalWeightMsg"></label><br><br>
         </div>
     </div>
 
@@ -212,7 +213,8 @@
                 $("#textResult").text("There is no ingredients yet.")
                     .attr("style", "color:red;");
                 $("#calcResult").text("");
-                $("#finalKcal").text("");
+                $("#finalKcalMsg").text("");
+                $("#totalWeightMsg").text("");
                 return;
             }
 
@@ -226,17 +228,19 @@
 
             let totalWeight = parseInt($("#totalWeight").val());
             let twWeight = parseInt($("input[name='tableware']:checked").val());
-            if (totalWeight <= twWeight) {
+            if ($("#totalWeight").val() == "" || totalWeight <= twWeight) {
                 $("#textResult").text("The total weight should be greater than the pot's weight.")
                     .attr("style", "color:red;");
                 $("#calcResult").text("");
-                $("#finalKcal").text("");
+                $("#finalKcalMsg").text("");
+                $("#totalWeightMsg").text("");
                 return;
             }
 
             totalEnergy = totalEnergy * 100 / (totalWeight - twWeight);
             $("#calcResult").text("Final energy is ");
-            $("#finalKcal").text(`${totalEnergy.toFixed(2)} kcal per 100 g.`).attr("style", "font-weight:bold");
+            $("#finalKcalMsg").text(`${totalEnergy.toFixed(2)} kcal per 100 g.`).attr("style", "font-weight:bold");
+            $("#totalWeightMsg").text(`Total weight is ${totalWeight - twWeight} g`);
 
             var text = `(${result.join(" + ")}) * 100 / (${totalWeight}-${twWeight}) = ${totalEnergy}`;
             $("#textResult").text(text).attr("style", "color:black;");
