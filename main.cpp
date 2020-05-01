@@ -38,11 +38,12 @@ std::string RenderDialogflowResponse(std::vector<std::string> items) {
         {
             "payload",
             json11::Json::object{
-                {"google", json11::Json::object{{
-                               "richResponse",
-                               json11::Json::object{
-                                   {"items", {std::move(simpleResponse)}}},
-                           }}}},
+                {"google",
+                 json11::Json::object{{
+                     "richResponse",
+                     json11::Json::object{
+                         {"items", json11::Json::array{std::move(simpleResponse)}}},
+                 }}}},
         },
     };
     return ret.dump();
