@@ -4,23 +4,68 @@
     <title>Foodculator 1.0</title>
     <link rel="icon" href="/static/icon.svg">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+
+    <style>
+        th,
+        td {
+            padding: 5px;
+            text-align: left;
+        }
+
+        th {
+            background-color: lavender;
+        }
+
+        input {
+            width: 100%;
+        }
+    </style>
 </head>
 
 <body onload="getTableware()">
-    <h1>All pans and pots:</h1>
-    <select id="tableware"></select>
+    <table id="tableware" style="width:50%">
+        <tr>
+            <td colspan="2">
+                <span style="font-size: x-large;">Add a new pot</span>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <input type="text" id="name" placeholder="pot's name">
+            </td>
+            <td>
+                <input type="number" min="0" max="10000" id="weight" onkeydown="callOnEnter(addTableware)"
+                    placeholder="weight in grams">
+            </td>
+            <td>
+                <input type="submit" value="Add" onclick="addTableware()">
+            </td>
+        </tr>
 
-    <h1>Add new</h1>
-    <label for="name">Name:</label>
-    <input type="text" id="name"><br><br>
+        <tr>
+            <td colspan="2">
+                <label id="twNameResponse" style="font-weight: bold; color: green; font-style: italic"></label>
+                <label id="response"></label>
+            </td>
+        </tr>
 
-    <label for="weight">Weight:</label>
-    <input type="number" min="0" max="10000" value="0" id="weight" onkeydown="callOnEnter(addTableware)">
-    <label for="weight">grams</label><br><br>
+        <tr>
+            <td colspan="2">
+                <span style="font-size: x-large;">All pots:</span>
+            </td>
+        </tr>
 
-    <input type="submit" value="Submit" onclick="addTableware()">
-    <label id="twNameResponse" style="font-weight: bold; color: green; font-style: italic"></label>
-    <label id="response"></label>
+        <tr>
+            <th>Pot</th>
+            <th>Weight</th>
+            <th>Delete</th>
+        </tr>
+
+        <tr>
+            <td colspan="2"></td>
+        </tr>
+    </table>
+    <label id="deleteResponse" style="color:red;"></label>
 </body>
 
 
@@ -31,14 +76,25 @@
         }
     }
 
+    function addPotToTable(name, weight, dbId) {
+        let dltBtn = $("<input type=submit value=Delete>")
+            .attr("dbId", dbId)
+            .attr("desc", `(${name}, ${weight})`)
+            .attr("onclick", " DeletePot($(this))");
+
+        $('#tableware').append($("<tr>")
+            .append($("<td>").text(name))
+            .append($("<td>").text(weight))
+            .append($("<td>").append(dltBtn))
+        );
+    }
+
     function addTableware() {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
             if (this.readyState == 4) {
                 if (this.status == 200) {
-                    $("#tableware").append($("<option>")
-                        .attr("dbId", parseInt(this.response))
-                        .text(`${$("#name").val()} ${$("#weight").val()} g`));
+                    addPotToTable($("#name").val(), $("#weight").val(), parseInt(this.response));
 
                     $("#twNameResponse").text($("#name").val());
                     $("#response").text(" successfully added.").attr("style", "color:green;");
@@ -63,15 +119,31 @@
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
             if (this.readyState == 4 && this.status == 200) {
-                JSON.parse(this.responseText).forEach(tw => {
-                    $("#tableware").append($("<option>")
-                        .attr("dbId", tw.id)
-                        .text(`${tw.name} ${tw.weight} g`));
-                });
+                JSON.parse(this.responseText).forEach(tw =>
+                    addPotToTable(tw.name, tw.weight, tw.id)
+                );
             }
         }
 
         xhttp.open("GET", "/get_tableware", true);
+        xhttp.send();
+    }
+
+
+    function DeletePot(btn) {
+        if (!confirm(`Do you want to delete the pot ${btn.attr("desc")}?`)) {
+            return;
+        }
+
+        var xhttp = new XMLHttpRequest();
+        xhttp.onreadystatechange = function () {
+            $("#deleteResponse").text(this.response);
+            if (this.readyState == 4 && this.status == 200) {
+                btn.closest("tr").remove();
+            }
+        }
+
+        xhttp.open("DELETE", `/tableware/${btn.attr("dbId")}`, true);
         xhttp.send();
     }
 </script>
