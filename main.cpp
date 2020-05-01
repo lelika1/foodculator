@@ -1,5 +1,3 @@
-#include <sqlite3.h>
-
 #include <csignal>
 #include <fstream>
 #include <iostream>
@@ -94,9 +92,9 @@ int main(int argc, char** argv) {
             return;
         };
 
-        auto st = db->InsertProduct({name, kcal});
-        if (st != SQLITE_OK) {
-            if (st == SQLITE_CONSTRAINT) {
+        auto result = db->InsertProduct({name, kcal});
+        if (result.code_ != DB::Result::OK) {
+            if (result.code_ == DB::Result::DUPLICATE) {
                 res.set_content(
                     "This ingredient already exists in the database.",
                     "text/plain");
@@ -109,6 +107,7 @@ int main(int argc, char** argv) {
             return;
         }
 
+        res.set_content(std::to_string(result.id_), "text/plain");
         res.status = 200;
     });
 
@@ -143,9 +142,9 @@ int main(int argc, char** argv) {
             return;
         };
 
-        auto st = db->InsertTableware({name, weight});
-        if (st != SQLITE_OK) {
-            if (st == SQLITE_CONSTRAINT) {
+        auto result = db->InsertTableware({name, weight});
+        if (result.code_ != DB::Result::OK) {
+            if (result.code_ == DB::Result::DUPLICATE) {
                 res.set_content("This pot already exists in the database.",
                                 "text/plain");
             } else {
@@ -156,6 +155,7 @@ int main(int argc, char** argv) {
             return;
         }
 
+        res.set_content(std::to_string(result.id_), "text/plain");
         res.status = 200;
     });
 
