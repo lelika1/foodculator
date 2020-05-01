@@ -78,6 +78,7 @@
                 if (this.status == 200) {
                     let dltBtn = $("<input type=submit value=Delete>");
                     $('#ingredients').append($("<tr>")
+                        .attr("dbId", parseInt(this.response))
                         .append($("<td>").text($("#product").val()))
                         .append($("<td>").text($("#kcal").val()))
                         .append($("<td>").append(dltBtn))
@@ -109,6 +110,7 @@
                 JSON.parse(this.responseText).forEach(pr => {
                     let dltBtn = $("<input type=submit value=Delete>");
                     $('#ingredients').append($("<tr>")
+                        .attr("dbId", pr.id)
                         .append($("<td>").text(pr.name))
                         .append($("<td>").text(pr.kcal))
                         .append($("<td>").append(dltBtn))

@@ -122,6 +122,7 @@
                     JSON.parse(this.responseText).forEach(pr =>
                         $("#ingredients").append($("<option>")
                             .attr('kcal', pr.kcal)
+                            .attr('dbId', pr.id)
                             .text(`${pr.name} ${pr.kcal} kcal`))
                     );
                 }
@@ -191,6 +192,7 @@
             );
 
             allIngredients.push({
+                dbId: $(found[0]).attr("dbId"),
                 kcal: $(found[0]).attr("kcal"),
                 weight: edit
             });
@@ -262,6 +264,7 @@
                         let kcal = $("#kcal").val();
                         $("#ingredients").append($("<option>")
                             .attr('kcal', kcal)
+                            .attr('dbIb', parseInt(this.responseText))
                             .text(`${$("#product").val()} ${kcal} kcal`))
                         $("#prNameResponse").text($("#product").val());
                         $("#newProductResponse").text(" successfully added.").attr("style", "color:green;");
