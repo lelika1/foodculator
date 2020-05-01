@@ -42,7 +42,8 @@
         </tr>
         <tr>
             <td colspan="2">
-                <label id="response" style="color: red;"></label>
+                <label id="prNameResponse" style="font-weight: bold; color: green; font-style: italic"></label>
+                <label id="response"></label>
             </td>
         </tr>
 
@@ -73,17 +74,24 @@
     function addProduct() {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
-            document.getElementById("response").innerHTML = this.responseText;
-            if (this.readyState == 4 && this.status == 200) {
-                let dltBtn = $("<input type=submit value=Delete>");
-                $('#ingredients').append($("<tr>")
-                    .append($("<td>").text($("#product").val()))
-                    .append($("<td>").text($("#kcal").val()))
-                    .append($("<td>").append(dltBtn))
-                )
+            if (this.readyState == 4) {
+                if (this.status == 200) {
+                    let dltBtn = $("<input type=submit value=Delete>");
+                    $('#ingredients').append($("<tr>")
+                        .append($("<td>").text($("#product").val()))
+                        .append($("<td>").text($("#kcal").val()))
+                        .append($("<td>").append(dltBtn))
+                    )
 
-                $("#kcal").val("");
-                $("#product").val('').focus();
+                    $("#prNameResponse").text($("#product").val());
+                    $("#response").text(" successfully added.").attr("style", "color:green;");
+
+                    $("#kcal").val("");
+                    $("#product").val('').focus();
+                } else {
+                    $("#prNameResponse").text("");
+                    $("#response").text(this.responseText).attr("style", "color:red;");
+                }
             }
         };
 

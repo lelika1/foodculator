@@ -19,6 +19,7 @@
     <label for="weight">grams</label><br><br>
 
     <input type="submit" value="Submit" onclick="addTableware()">
+    <label id="twNameResponse" style="font-weight: bold; color: green; font-style: italic"></label>
     <label id="response"></label>
 </body>
 
@@ -33,12 +34,20 @@
     function addTableware() {
         var xhttp = new XMLHttpRequest();
         xhttp.onreadystatechange = function () {
-            $("#response").text(this.responseText);
-            if (this.readyState == 4 && this.status == 200) {
-                $("#tableware").append($("<option>")
-                    .text(`${$("#name").val()} ${$("#weight").val()} g`));
-                $("#weight").val(0);
-                $("#name").val('').focus();
+            if (this.readyState == 4) {
+                if (this.status == 200) {
+                    $("#tableware").append($("<option>")
+                        .text(`${$("#name").val()} ${$("#weight").val()} g`));
+
+                    $("#twNameResponse").text($("#name").val());
+                    $("#response").text(" successfully added.").attr("style", "color:green;");
+
+                    $("#weight").val(0);
+                    $("#name").val('').focus();
+                } else {
+                    $("#twNameResponse").text("");
+                    $("#response").text(this.responseText).attr("style", "color:red;");
+                }
             }
         };
 

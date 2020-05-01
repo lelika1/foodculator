@@ -88,6 +88,8 @@
             <span style="font-size: large;">for 100g</span><br><br>
 
             <input type="submit" value="Add a new product" onclick="addNewProduct()">
+
+            <label id="prNameResponse" style="font-weight: bold; color: green; font-style: italic"></label>
             <label id="newProductResponse"></label>
         </div><br><br>
 
@@ -101,6 +103,8 @@
             <span style="font-size: large;">grams</span><br><br>
 
             <input type="submit" value="Add a new pot" onclick="addNewTw()">
+
+            <label id="twNameResponse" style="font-weight: bold; color: green; font-style: italic"></label>
             <label id="newTwResponse"></label>
         </div>
     </div>
@@ -224,15 +228,22 @@
         function addNewTw() {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
-                $("#newTwResponse").text(this.responseText);
-                if (this.readyState == 4 && this.status == 200) {
-                    let weight = $("#newTwWeight").val();
-                    let name = $("#newTwName").val();
-                    addItemToTableware(weight, 'tableware',
-                        `${$("#newTwName").val()} ${$("#newTwWeight").val()} g`);
+                if (this.readyState == 4) {
+                    if (this.status == 200) {
+                        let weight = $("#newTwWeight").val();
+                        let name = $("#newTwName").val();
+                        addItemToTableware(weight, 'tableware',
+                            `${$("#newTwName").val()} ${$("#newTwWeight").val()} g`);
 
-                    $("#newTwWeight").val(0);
-                    $("#newTwName").val('').focus();
+                        $("#twNameResponse").text($("#newTwName").val());
+                        $("#newTwResponse").text(" successfully added.").attr("style", "color:green;");
+
+                        $("#newTwWeight").val(0);
+                        $("#newTwName").val('').focus();
+                    } else {
+                        $("#twNameResponse").text("");
+                        $("#newTwResponse").text(this.responseText).attr("style", "color:red;");
+                    }
                 }
             };
 
@@ -246,15 +257,21 @@
         function addNewProduct() {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
-                $("#newProductResponse").text(this.responseText);
-                if (this.readyState == 4 && this.status == 200) {
-                    let kcal = $("#kcal").val();
-                    $("#ingredients").append($("<option>")
-                        .attr('kcal', kcal)
-                        .text(`${$("#product").val()} ${kcal} kcal`))
+                if (this.readyState == 4) {
+                    if (this.status == 200) {
+                        let kcal = $("#kcal").val();
+                        $("#ingredients").append($("<option>")
+                            .attr('kcal', kcal)
+                            .text(`${$("#product").val()} ${kcal} kcal`))
+                        $("#prNameResponse").text($("#product").val());
+                        $("#newProductResponse").text(" successfully added.").attr("style", "color:green;");
 
-                    $("#kcal").val(0);
-                    $("#product").val('').focus();
+                        $("#kcal").val(0);
+                        $("#product").val('').focus();
+                    } else {
+                        $("#prNameResponse").text("");
+                        $("#newProductResponse").text(this.responseText).attr("style", "color:red;");
+                    }
                 }
             };
 
