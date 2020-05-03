@@ -185,12 +185,12 @@ int main(int argc, char** argv) {
             for (const auto& ingredient : db->GetIngredients()) {
                 text << "\n"
                      << ingredient.name_ << " по " << ingredient.kcal_
-                     << " калории";
+                     << " калории,";
             }
         } else if (intent_name == "pots") {
             text << "Наша посуда:";
             for (const auto& pot : db->GetTableware()) {
-                text << "\n" << pot.name_ << " по " << pot.weight_ << " грам";
+                text << "\n" << pot.name_ << " по " << pot.weight_ << " грам,";
             }
         } else {
             // This intent is not supported.
