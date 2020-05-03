@@ -9,6 +9,7 @@
 #include "db/db.h"
 #include "httplib/httplib.h"
 #include "json11/json11.hpp"
+#include "tgbot/tgbot.h"
 
 namespace {
 std::string ReadHtml(const std::string& path) {

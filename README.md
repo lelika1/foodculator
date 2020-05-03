@@ -5,9 +5,9 @@
 ## Build
 
 ```sh
-$ sudo apt install libsqlite3-dev
+$ sudo apt-get install g++ make binutils cmake libssl-dev libboost-system-dev zlib1g-dev libsqlite3-dev
 $ mkdir build && cd build
-$ cmake .. && make
+$ cmake .. && make -j4
 ```
 
 ## Run
