@@ -31,7 +31,7 @@ $ docker build .
 ```sh
 $ docker run -p 1234:1234 --rm -d \
    --label=com.centurylinklabs.watchtower.stop-signal=SIGKILL \
-   -v /root/foodprod/:/data/ \
+   -v /root/foodprod:/data \
    --name foodculator \
    docker.pkg.github.com/lelika1/foodculator/foodculator:latest
 ```
