@@ -1,5 +1,6 @@
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "json11.hpp"
@@ -13,8 +14,8 @@ struct Ingredient {
     uint32_t kcal_;
     size_t id_;
 
-    Ingredient(const std::string& name, uint32_t kcal, size_t id = 0)
-        : name_(name), kcal_(kcal), id_(id) {}
+    Ingredient(std::string name, uint32_t kcal, size_t id = 0)
+        : name_(std::move(name)), kcal_(kcal), id_(id) {}
 
     json11::Json to_json() const {
         return json11::Json::object{{"name", name_},
@@ -28,8 +29,8 @@ struct Tableware {
     uint32_t weight_;
     size_t id_;
 
-    Tableware(const std::string& name, uint32_t weight, size_t id = 0)
-        : name_(name), weight_(weight), id_(id) {}
+    Tableware(std::string name, uint32_t weight, size_t id = 0)
+        : name_(std::move(name)), weight_(weight), id_(id) {}
 
     json11::Json to_json() const {
         return json11::Json::object{{"name", name_},
@@ -47,7 +48,7 @@ class DB {
         Result(Code code, size_t id = 0) : code_(code), id_(id) {}
     };
 
-    static std::unique_ptr<DB> Create(const std::string& path);
+    static std::unique_ptr<DB> Create(std::string_view path);
     ~DB();
 
     Result AddProduct(const Ingredient& ingr);
@@ -61,12 +62,12 @@ class DB {
    private:
     explicit DB(sqlite3* db) : db_(db) {}
 
-    Result Insert(const char* sql);
+    Result Insert(std::string_view sql);
 
-    using DBRow = std::map<std::string, std::string>;
-    std::vector<DBRow> Select(const char* sql);
+    using DBRow = std::vector<std::string>;
+    std::vector<DBRow> Select(std::string_view sql);
 
-    bool Delete(const char* sql);
+    bool Delete(std::string_view sql);
     sqlite3* db_;
 };
 }  // namespace foodculator
