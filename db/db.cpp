@@ -5,6 +5,8 @@
 #include <iostream>
 #include <sstream>
 
+namespace foodculator {
+
 std::unique_ptr<DB> DB::Create(const std::string& path) {
     sqlite3* db;
 
@@ -32,7 +34,7 @@ std::unique_ptr<DB> DB::Create(const std::string& path) {
         );
     )*";
 
-    char* err_msg = 0;
+    char* err_msg = nullptr;
     auto cb = [](void*, int, char**, char**) -> int { return 0; };
     if (sqlite3_exec(db, sql, cb, 0, &err_msg) != SQLITE_OK) {
         std::cerr << "SQL error: " << err_msg << std::endl;
@@ -50,7 +52,7 @@ DB::~DB() {
     }
 }
 
-DB::Result DB::InsertProduct(const Ingredient& ingr) {
+DB::Result DB::AddProduct(const Ingredient& ingr) {
     std::stringstream ss;
     ss << "INSERT INTO INGREDIENTS (NAME,KCAL) VALUES ('" << ingr.name_ << "', "
        << ingr.kcal_ << ");";
@@ -59,7 +61,7 @@ DB::Result DB::InsertProduct(const Ingredient& ingr) {
     return Insert(sql.c_str());
 }
 
-DB::Result DB::InsertTableware(const Tableware& tw) {
+DB::Result DB::AddTableware(const Tableware& tw) {
     std::stringstream ss;
     ss << "INSERT INTO TABLEWARE (NAME,WEIGHT) VALUES ('" << tw.name_ << "', "
        << tw.weight_ << ");";
@@ -69,7 +71,7 @@ DB::Result DB::InsertTableware(const Tableware& tw) {
 }
 
 DB::Result DB::Insert(const char* sql) {
-    char* err_msg = 0;
+    char* err_msg = nullptr;
     auto cb = [](void*, int, char**, char**) -> int { return 0; };
     auto st = sqlite3_exec(db_, sql, cb, 0, &err_msg);
     if (st != SQLITE_OK) {
@@ -84,32 +86,46 @@ DB::Result DB::Insert(const char* sql) {
 }
 
 std::vector<Ingredient> DB::GetIngredients() {
-    return SelectAll<Ingredient>("SELECT NAME, KCAL, ID from INGREDIENTS");
+    const auto& rows = Select("SELECT ID, NAME, KCAL from INGREDIENTS");
+
+    std::vector<Ingredient> result;
+    for (const auto& row : rows) {
+        result.emplace_back(row.at("NAME"), std::stoi(row.at("KCAL")),
+                            std::stoi(row.at("ID")));
+    }
+    return result;
 }
 
 std::vector<Tableware> DB::GetTableware() {
-    return SelectAll<Tableware>("SELECT NAME, WEIGHT, ID from TABLEWARE");
+    const auto& rows = Select("SELECT ID, NAME, WEIGHT from TABLEWARE");
+
+    std::vector<Tableware> result;
+    for (const auto& row : rows) {
+        result.emplace_back(row.at("NAME"), std::stoi(row.at("WEIGHT")),
+                            std::stoi(row.at("ID")));
+    }
+    return result;
 }
 
-template <class T>
-std::vector<T> DB::SelectAll(const char* sql) {
-    auto cb = [](void* data, int argc, char** argv, char** columns) -> int {
-        if (argc != 3) {
-            return 1;
+std::vector<DB::DBRow> DB::Select(const char* sql) {
+    auto cb = [](void* data, int argc, char** argv, char** columns) {
+        DB::DBRow row;
+        for (size_t i = 0; i < argc; ++i) {
+            row[std::string(columns[i])] = std::string(argv[i]);
         }
 
-        std::vector<T>* results = static_cast<std::vector<T>*>(data);
-        results->emplace_back(argv[0], std::stoi(argv[1]), std::stoi(argv[2]));
+        auto* result = static_cast<std::vector<DB::DBRow>*>(data);
+        result->push_back(row);
         return 0;
     };
 
-    char* err_msg = 0;
-    std::vector<T> results;
-    if (sqlite3_exec(db_, sql, cb, &results, &err_msg) != SQLITE_OK) {
+    char* err_msg = nullptr;
+    std::vector<DB::DBRow> result;
+    if (sqlite3_exec(db_, sql, cb, &result, &err_msg) != SQLITE_OK) {
         std::cerr << "SQL error: " << err_msg << std::endl;
         sqlite3_free(err_msg);
     }
-    return results;
+    return result;
 }
 
 bool DB::DeleteProduct(size_t id) {
@@ -129,7 +145,7 @@ bool DB::DeleteTableware(size_t id) {
 }
 
 bool DB::Delete(const char* sql) {
-    char* err_msg = 0;
+    char* err_msg = nullptr;
     auto cb = [](void*, int, char**, char**) -> int { return 0; };
     auto st = sqlite3_exec(db_, sql, cb, 0, &err_msg);
     if (st != SQLITE_OK) {
@@ -140,3 +156,4 @@ bool DB::Delete(const char* sql) {
 
     return true;
 }
+}  // namespace foodculator

@@ -6,6 +6,8 @@
 
 class sqlite3;
 
+namespace foodculator {
+
 struct Ingredient {
     std::string name_;
     uint32_t kcal_;
@@ -48,8 +50,8 @@ class DB {
     static std::unique_ptr<DB> Create(const std::string& path);
     ~DB();
 
-    Result InsertProduct(const Ingredient& ingr);
-    Result InsertTableware(const Tableware& tw);
+    Result AddProduct(const Ingredient& ingr);
+    Result AddTableware(const Tableware& tw);
     std::vector<Ingredient> GetIngredients();
     std::vector<Tableware> GetTableware();
 
@@ -61,9 +63,10 @@ class DB {
 
     Result Insert(const char* sql);
 
-    template <class T>
-    std::vector<T> SelectAll(const char* sql);
+    using DBRow = std::map<std::string, std::string>;
+    std::vector<DBRow> Select(const char* sql);
 
     bool Delete(const char* sql);
     sqlite3* db_;
 };
+}  // namespace foodculator

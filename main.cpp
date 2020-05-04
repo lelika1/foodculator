@@ -59,6 +59,8 @@ void signal_handler(int signal) {
 }
 
 int main(int argc, char** argv) {
+    using foodculator::DB;
+
     if (argc != 3) {
         std::cerr << "usage: " << argv[0]
                   << " path_to_static_files path_to_database" << std::endl;
@@ -122,7 +124,7 @@ int main(int argc, char** argv) {
             return;
         };
 
-        auto result = db->InsertProduct({name, kcal});
+        auto result = db->AddProduct({name, kcal});
         if (result.code_ != DB::Result::OK) {
             if (result.code_ == DB::Result::DUPLICATE) {
                 res.set_content(
@@ -227,7 +229,7 @@ int main(int argc, char** argv) {
             return;
         };
 
-        auto result = db->InsertTableware({name, weight});
+        auto result = db->AddTableware({name, weight});
         if (result.code_ != DB::Result::OK) {
             if (result.code_ == DB::Result::DUPLICATE) {
                 res.set_content("This pot already exists in the database.",
