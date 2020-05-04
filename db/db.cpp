@@ -8,6 +8,11 @@
 std::unique_ptr<DB> DB::Create(const std::string& path) {
     sqlite3* db;
 
+    int st = sqlite3_config(SQLITE_CONFIG_SERIALIZED);
+    if (st != SQLITE_OK) {
+        std::cout << "SQL config error: " << st << std::endl;
+    }
+
     if (sqlite3_open(path.c_str(), &db) != SQLITE_OK) {
         std::cerr << "Can't open database: " << path << std::endl;
         return nullptr;
