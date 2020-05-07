@@ -3,10 +3,12 @@ project(Foodculator)
 
 add_executable(foodculator main.cpp)
 
-execute_process(COMMAND python "${CMAKE_CURRENT_SOURCE_DIR}/cpp-httplib/split.py"
+find_package(Python REQUIRED)
+execute_process(COMMAND Python_EXECUTABLE "${CMAKE_CURRENT_SOURCE_DIR}/cpp-httplib/split.py"
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/cpp-httplib/)
 
-execute_process(COMMAND mv "${CMAKE_CURRENT_SOURCE_DIR}/cpp-httplib/out" "${CMAKE_BINARY_DIR}/httplib")
+file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/cpp-httplib/out/" DESTINATION "${CMAKE_BINARY_DIR}/httplib")
+file(REMOVE_RECURSE "${CMAKE_CURRENT_SOURCE_DIR}/cpp-httplib/out")
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
 
