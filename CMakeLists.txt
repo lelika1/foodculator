@@ -19,6 +19,7 @@ file(COPY "${CMAKE_CURRENT_SOURCE_DIR}/cpp-httplib/out/" DESTINATION "${CMAKE_BI
 file(REMOVE_RECURSE "${CMAKE_CURRENT_SOURCE_DIR}/cpp-httplib/out")
 
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_library(Httplib STATIC "${CMAKE_BINARY_DIR}/httplib/httplib.cc")
 
