@@ -116,6 +116,14 @@ int main(int argc, char** argv) {
             return;
         }
 
+        if (js["kcal"].int_value() < 0) {
+            res.set_content(
+                "An ingredient wasn't added. The energy couldn't be negative.",
+                "text/plain");
+            res.status = 400;
+            return;
+        }
+
         uint32_t kcal = js["kcal"].int_value();
         auto result = db->AddProduct({std::move(name), kcal});
         switch (result.code_) {
@@ -142,8 +150,9 @@ int main(int argc, char** argv) {
     srv.Delete(R"(/ingredient/(\d+))", [&db](const httplib::Request& req,
                                              httplib::Response& res) {
         if (auto id = std::stoi(req.matches[1].str()); !db->DeleteProduct(id)) {
-            res.set_content("A pot wasn't deleted. Some SQL error occured.",
-                            "text/plain");
+            res.set_content(
+                "An ingredient wasn't deleted. Some SQL error occured.",
+                "text/plain");
             res.status = 500;
         }
     });
@@ -166,6 +175,14 @@ int main(int argc, char** argv) {
 
             res.set_content("A pot wasn't added. Some information is missing.",
                             "text/plain");
+            res.status = 400;
+            return;
+        }
+
+        if (js["weight"].int_value() < 0) {
+            res.set_content(
+                "A pot wasn't added. The weight couldn't be negative.",
+                "text/plain");
             res.status = 400;
             return;
         }
@@ -195,9 +212,8 @@ int main(int argc, char** argv) {
                                             httplib::Response& res) {
         int id = std::stoi(req.matches[1].str());
         if (!db->DeleteTableware(id)) {
-            res.set_content(
-                "An ingredient wasn't deleted. Some SQL error occured.",
-                "text/plain");
+            res.set_content("A pot wasn't deleted. Some SQL error occured.",
+                            "text/plain");
             res.status = 500;
         }
     });
