@@ -126,9 +126,9 @@ int main(int argc, char** argv) {
 
         uint32_t kcal = js["kcal"].int_value();
         auto result = db->AddProduct({std::move(name), kcal});
-        switch (result.code_) {
+        switch (result.code) {
             case DB::Result::OK: {
-                res.set_content(std::to_string(result.id_), "text/plain");
+                res.set_content(std::to_string(result.id), "text/plain");
                 return;
             }
             case DB::Result::DUPLICATE: {
@@ -189,9 +189,9 @@ int main(int argc, char** argv) {
 
         uint32_t weight = js["weight"].int_value();
         auto result = db->AddTableware({std::move(name), weight});
-        switch (result.code_) {
+        switch (result.code) {
             case DB::Result::OK: {
-                res.set_content(std::to_string(result.id_), "text/plain");
+                res.set_content(std::to_string(result.id), "text/plain");
                 return;
             }
             case DB::Result::DUPLICATE: {

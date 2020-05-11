@@ -24,7 +24,7 @@ std::unique_ptr<DB> DB::Create(std::string_view path) {
         CREATE TABLE IF NOT EXISTS INGREDIENTS(
             ID           INTEGER   PRIMARY KEY   AUTOINCREMENT NOT NULL,
             NAME         TEXT                                  NOT NULL,
-            KCAL         INTEGER   DEFAULT 0,
+            KCAL         INTEGER   DEFAULT 0                   NOT NULL,
             UNIQUE (NAME, KCAL)
         );
         CREATE TABLE IF NOT EXISTS TABLEWARE(
@@ -53,93 +53,138 @@ DB::~DB() {
 }
 
 DB::Result DB::AddProduct(const Ingredient& ingr) {
-    std::stringstream ss;
-    ss << "INSERT INTO INGREDIENTS (NAME,KCAL) VALUES ('" << ingr.name_ << "', "
-       << ingr.kcal_ << ");";
-    return Insert(ss.str());
+    std::vector<BindParameter> params = {BindParameter(ingr.name_.c_str()),
+                                         BindParameter(ingr.kcal_)};
+    return Insert("INGREDIENTS", {"NAME", "KCAL"}, "ID", params);
 }
 
 DB::Result DB::AddTableware(const Tableware& tw) {
-    std::stringstream ss;
-    ss << "INSERT INTO TABLEWARE (NAME,WEIGHT) VALUES ('" << tw.name_ << "', "
-       << tw.weight_ << ");";
-    return Insert(ss.str());
+    std::vector<BindParameter> params = {BindParameter(tw.name_.c_str()),
+                                         BindParameter(tw.weight_)};
+
+    return Insert("TABLEWARE", {"NAME", "WEIGHT"}, "ID", params);
 }
 
-DB::Result DB::Insert(std::string_view sql) {
-    char* err = nullptr;
-    auto st = sqlite3_exec(db_, sql.data(), nullptr, 0, &err);
-    if (st != SQLITE_OK) {
-        std::cerr << "SQL error : " << err << std::endl;
-        sqlite3_free(err);
-        return Result{(st == SQLITE_CONSTRAINT) ? Result::DUPLICATE
-                                                : Result::ERROR};
+DB::Result DB::Insert(std::string_view table,
+                      const std::vector<std::string_view>& fields,
+                      std::string_view id_field,
+                      const std::vector<BindParameter>& params) {
+    if (fields.size() != params.size()) {
+        std::cerr << "fields.size() != params.size(): " << fields.size() << " "
+                  << params.size() << std::endl;
+        exit(1);
     }
 
-    size_t last_id = sqlite3_last_insert_rowid(db_);
-    return Result{Result::OK, last_id};
+    std::stringstream names;
+    std::stringstream binds;
+    std::stringstream conds;
+    for (size_t idx = 0; idx < fields.size(); idx++) {
+        if (idx > 0) {
+            names << ", ";
+            binds << ", ";
+            conds << " AND ";
+        }
+        names << fields[idx];
+        binds << "?";
+        conds << fields[idx] << " = ?";
+    }
+    std::stringstream insert;
+    insert << "INSERT INTO " << table << "(" << names.str() << ") VALUES ("
+           << binds.str() << ");";
+
+    switch (Exec(insert.str(), params).status) {
+        case SQLITE_OK:
+            break;
+        case SQLITE_CONSTRAINT:
+            return Result{Result::DUPLICATE};
+        default:
+            return Result{Result::ERROR};
+    }
+
+    std::stringstream select_id;
+    select_id << "SELECT " << id_field << " FROM " << table << " WHERE"
+              << conds.str() << ";";
+    const auto& res = Exec(select_id.str(), params);
+    if ((res.rows.size() != 1) || (res.rows[0].size() != 1)) {
+        return {.code = Result::ERROR};
+    }
+
+    return {.code = Result::OK, .id = std::stoull(res.rows[0][0])};
 }
 
 std::vector<Ingredient> DB::GetIngredients() {
-    std::vector<Ingredient> result;
-    for (auto& row : Select("SELECT NAME, KCAL, ID from INGREDIENTS")) {
-        result.emplace_back(std::move(row[0]), std::stoi(row[1]),
-                            std::stoi(row[2]));
+    std::vector<Ingredient> ret;
+    const auto& res = Exec("SELECT NAME, KCAL, ID from INGREDIENTS", {});
+    for (auto& row : res.rows) {
+        ret.emplace_back(std::move(row[0]), std::stoi(row[1]),
+                         std::stoi(row[2]));
     }
-    return result;
+    return ret;
 }
 
 std::vector<Tableware> DB::GetTableware() {
-    std::vector<Tableware> result;
-    for (auto& row : Select("SELECT NAME, WEIGHT, ID from TABLEWARE")) {
-        result.emplace_back(std::move(row[0]), std::stoi(row[1]),
-                            std::stoi(row[2]));
+    std::vector<Tableware> ret;
+    const auto& res = Exec("SELECT NAME, WEIGHT, ID from TABLEWARE", {});
+    for (auto& row : res.rows) {
+        ret.emplace_back(std::move(row[0]), std::stoi(row[1]),
+                         std::stoi(row[2]));
     }
-    return result;
-}
-
-std::vector<DB::DBRow> DB::Select(std::string_view sql) {
-    auto cb = [](void* data, int argc, char** argv, char** columns) {
-        DB::DBRow row;
-        row.reserve(argc);
-        for (int i = 0; i < argc; ++i) {
-            row.emplace_back(argv[i]);
-        }
-
-        auto* result = static_cast<std::vector<DB::DBRow>*>(data);
-        result->emplace_back(std::move(row));
-        return 0;
-    };
-
-    char* err = nullptr;
-    std::vector<DB::DBRow> result;
-    if (sqlite3_exec(db_, sql.data(), cb, &result, &err) != SQLITE_OK) {
-        std::cerr << "SQL error: " << err << std::endl;
-        sqlite3_free(err);
-    }
-    return result;
+    return ret;
 }
 
 bool DB::DeleteProduct(size_t id) {
-    std::stringstream ss;
-    ss << "DELETE from INGREDIENTS where ID = " << id << ";";
-    return Delete(ss.str());
+    const auto& st = Exec("DELETE from INGREDIENTS where ID = ?1;", {{id}});
+    return st.status == SQLITE_OK;
 }
 
 bool DB::DeleteTableware(size_t id) {
-    std::stringstream ss;
-    ss << "DELETE from TABLEWARE where ID = " << id << ";";
-    return Delete(ss.str());
+    const auto& st = Exec("DELETE FROM TABLEWARE WHERE ID=?1", {{id}});
+    return st.status == SQLITE_OK;
 }
 
-bool DB::Delete(std::string_view sql) {
-    char* err = nullptr;
-    if (sqlite3_exec(db_, sql.data(), nullptr, 0, &err) != SQLITE_OK) {
-        std::cerr << "SQL error: " << err << std::endl;
-        sqlite3_free(err);
-        return false;
+DB::ExecResult DB::Exec(std::string_view sql,
+                        const std::vector<BindParameter>& params) {
+    sqlite3_stmt* stmt = nullptr;
+    int st = sqlite3_prepare_v2(db_, sql.data(), -1, &stmt, nullptr);
+    if (st != SQLITE_OK || stmt == nullptr) {
+        std::cerr << "Prepare failed: " << st << " SQL: " << sql << std::endl;
+        return {.status = st};
     }
 
-    return true;
+    for (auto i = 0; i < params.size(); ++i) {
+        if (params[i].index() == 0) {
+            st = sqlite3_bind_int(stmt, i + 1, std::get<uint32_t>(params[i]));
+        } else {
+            st = sqlite3_bind_text(stmt, i + 1,
+                                   std::get<std::string>(params[i]).c_str(), -1,
+                                   SQLITE_TRANSIENT);
+        }
+
+        if (st != SQLITE_OK) {
+            std::cerr << "Bind failed: " << st << " SQL: " << sql << std::endl;
+            return {.status = st};
+        }
+    }
+
+    std::lock_guard<std::mutex> lock(mu_);
+
+    std::vector<DBRow> rows;
+    for (st = sqlite3_step(stmt); st == SQLITE_ROW; st = sqlite3_step(stmt)) {
+        rows.emplace_back();
+        auto& row = rows.back();
+        const int column_count = sqlite3_column_count(stmt);
+        for (size_t i = 0; i < column_count; ++i) {
+            row.emplace_back((char*)sqlite3_column_text(stmt, i));
+        }
+    }
+
+    sqlite3_reset(stmt);
+    sqlite3_finalize(stmt);
+
+    if (st == SQLITE_OK || st == SQLITE_DONE) {
+        return {.status = SQLITE_OK, .rows = std::move(rows)};
+    }
+    return {.status = st};
 }
+
 }  // namespace foodculator

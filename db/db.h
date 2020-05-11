@@ -1,6 +1,8 @@
 #include <memory>
+#include <mutex>
 #include <string>
 #include <string_view>
+#include <variant>
 #include <vector>
 
 #include "json11.hpp"
@@ -43,9 +45,8 @@ class DB {
    public:
     struct Result {
         enum Code { OK = 0, DUPLICATE, ERROR };
-        Code code_;
-        size_t id_;
-        Result(Code code, size_t id = 0) : code_(code), id_(id) {}
+        Code code;
+        size_t id;
     };
 
     static std::unique_ptr<DB> Create(std::string_view path);
@@ -60,14 +61,25 @@ class DB {
     bool DeleteTableware(size_t id);
 
    private:
+    using DBRow = std::vector<std::string>;
+    using BindParameter = std::variant<uint32_t, std::string>;
+
     explicit DB(sqlite3* db) : db_(db) {}
 
-    Result Insert(std::string_view sql);
+    DB::Result Insert(std::string_view table,
+                      const std::vector<std::string_view>& fields,
+                      std::string_view id_field,
+                      const std::vector<BindParameter>& params);
 
-    using DBRow = std::vector<std::string>;
-    std::vector<DBRow> Select(std::string_view sql);
+    struct ExecResult {
+        int status;
+        std::vector<DBRow> rows;
+    };
 
-    bool Delete(std::string_view sql);
+    ExecResult Exec(std::string_view sql,
+                    const std::vector<BindParameter>& params);
+
+    std::mutex mu_;
     sqlite3* db_;
 };
 }  // namespace foodculator
