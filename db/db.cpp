@@ -102,7 +102,7 @@ DB::Result DB::Insert(std::string_view table,
     }
 
     std::stringstream select_id;
-    select_id << "SELECT " << id_field << " FROM " << table << " WHERE"
+    select_id << "SELECT " << id_field << " FROM " << table << " WHERE "
               << conds.str() << ";";
     const auto& res = Exec(select_id.str(), params);
     if ((res.rows.size() != 1) || (res.rows[0].size() != 1)) {
