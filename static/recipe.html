@@ -51,7 +51,9 @@
             </tr>
             <tr>
                 <td>
-                    <input list="ingredients" id="getIngredient" placeholder="Choose an ingredient" autofocus>
+                    <input list="ingredients" id="getIngredient" placeholder="Choose an ingredient" autofocus
+                        onkeydown="callOnEnter(setFocusOnNextInput, this)">
+
                     <datalist id="ingredients"></datalist>
                 </td>
                 <td>
@@ -84,7 +86,7 @@
         <a href="javascript:hideDiv('newProductDiv');" style="font-size: x-large;">Add a new product</a>
         <div id="newProductDiv" style="display: none;">
             <span style="font-size: large;">Product:</span>
-            <input type="text" id="product"><br><br>
+            <input type="text" id="product" onkeydown="callOnEnter(setFocusOnNextInput, this)"><br><br>
 
             <span style="font-size: large;">kcal:</span>
             <input type="number" min="0" max="10000" value="0" id="kcal" onkeydown="callOnEnter(addNewProduct)">
@@ -99,7 +101,7 @@
         <a href="javascript:hideDiv('newTwDiv');" style="font-size: x-large;">Add a new pot</a>
         <div id="newTwDiv" style="display: none;">
             <span style="font-size: large;">Name:</span>
-            <input type="text" id="newTwName"><br><br>
+            <input type="text" id="newTwName" onkeydown="callOnEnter(setFocusOnNextInput, this)"><br><br>
 
             <span style="font-size: large;">Weight:</span>
             <input type="number" min="0" max="10000" value="0" id="newTwWeight" onkeydown="callOnEnter(addNewTw)">
@@ -168,10 +170,17 @@
             xhttp.send();
         }
 
-        function callOnEnter(fn) {
+        function callOnEnter(fn, ...params) {
             if (event.key === 'Enter') {
-                fn();
+                fn(params);
             }
+        }
+
+        function setFocusOnNextInput(current) {
+            if (current.length != 1) {
+                return;
+            }
+            $(":input:eq(" + ($(":input").index(current[0]) + 1) + ")").focus();
         }
 
         var allIngredients = [];
@@ -308,8 +317,10 @@
             var div = $(`#${divName}`);
             if (div.css("display") === "none") {
                 div.attr("style", "display:block");
+                div.find('input').first().focus();
             } else {
                 div.attr("style", "display:none");
+                $("#getIngredient").focus();
             }
         }
 

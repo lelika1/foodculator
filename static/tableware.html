@@ -31,7 +31,8 @@
         </tr>
         <tr>
             <td>
-                <input type="text" id="name" placeholder="pot's name">
+                <input type="text" id="name" placeholder="pot's name"
+                    onkeydown="callOnEnter(setFocusOnNextInput, this)">
             </td>
             <td>
                 <input type="number" min="0" max="10000" id="weight" onkeydown="callOnEnter(addTableware)"
@@ -70,10 +71,17 @@
 
 
 <script>
-    function callOnEnter(fn) {
+    function callOnEnter(fn, ...params) {
         if (event.key === 'Enter') {
-            fn();
+            fn(params);
         }
+    }
+
+    function setFocusOnNextInput(current) {
+        if (current.length != 1) {
+            return;
+        }
+        $(":input:eq(" + ($(":input").index(current[0]) + 1) + ")").focus();
     }
 
     function addPotToTable(name, weight, dbId) {
