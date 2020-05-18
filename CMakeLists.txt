@@ -33,6 +33,7 @@ set_target_properties(foodculator Httplib
 add_subdirectory(db)
 add_subdirectory(json11)
 add_subdirectory(tgbot-cpp)
+add_subdirectory(tests)
 
 target_link_libraries(foodculator DbLib 
 								  Httplib 

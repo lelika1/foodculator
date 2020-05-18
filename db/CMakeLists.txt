@@ -9,5 +9,5 @@ set_target_properties(DbLib
 	CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fno-rtti -O2"
 )
 
-include_directories(json11)
+target_include_directories(DbLib PRIVATE "${PROJECT_SOURCE_DIR}")
 target_link_libraries(DbLib sqlite3 json11)

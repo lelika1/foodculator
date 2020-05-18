@@ -5,7 +5,7 @@
 #include <variant>
 #include <vector>
 
-#include "json11.hpp"
+#include "json11/json11.hpp"
 
 class sqlite3;
 
