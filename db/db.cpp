@@ -142,7 +142,7 @@ bool DB::DeleteProduct(size_t id) {
 }
 
 bool DB::DeleteTableware(size_t id) {
-    const auto& st = Exec("DELETE FROM TABLEWARE WHERE ID=?1", {{id}});
+    const auto& st = Exec("DELETE FROM TABLEWARE WHERE ID = ?1", {{id}});
     return st.status == SQLITE_OK;
 }
 
