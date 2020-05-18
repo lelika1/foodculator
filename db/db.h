@@ -52,12 +52,12 @@ class DB {
     static std::unique_ptr<DB> Create(std::string_view path);
     ~DB();
 
-    Result AddProduct(const Ingredient& ingr);
-    Result AddTableware(const Tableware& tw);
-    std::vector<Ingredient> GetIngredients();
-    std::vector<Tableware> GetTableware();
-
+    Result AddProduct(std::string name, uint32_t kcal);
+    std::vector<Ingredient> GetProducts();
     bool DeleteProduct(size_t id);
+
+    Result AddTableware(std::string name, uint32_t weight);
+    std::vector<Tableware> GetTableware();
     bool DeleteTableware(size_t id);
 
    private:

@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <sstream>
+#include <string_view>
 
 namespace foodculator {
 
@@ -52,15 +53,15 @@ DB::~DB() {
     }
 }
 
-DB::Result DB::AddProduct(const Ingredient& ingr) {
-    std::vector<BindParameter> params = {BindParameter(ingr.name.c_str()),
-                                         BindParameter(ingr.kcal)};
+DB::Result DB::AddProduct(std::string name, uint32_t kcal) {
+    std::vector<BindParameter> params = {BindParameter(std::move(name)),
+                                         BindParameter(kcal)};
     return Insert("INGREDIENTS", {"NAME", "KCAL"}, "ID", params);
 }
 
-DB::Result DB::AddTableware(const Tableware& tw) {
-    std::vector<BindParameter> params = {BindParameter(tw.name.c_str()),
-                                         BindParameter(tw.weight)};
+DB::Result DB::AddTableware(std::string name, uint32_t weight) {
+    std::vector<BindParameter> params = {BindParameter(std::move(name)),
+                                         BindParameter(weight)};
 
     return Insert("TABLEWARE", {"NAME", "WEIGHT"}, "ID", params);
 }
@@ -112,7 +113,7 @@ DB::Result DB::Insert(std::string_view table,
     return {.code = Result::OK, .id = std::stoull(res.rows[0][0])};
 }
 
-std::vector<Ingredient> DB::GetIngredients() {
+std::vector<Ingredient> DB::GetProducts() {
     std::vector<Ingredient> ret;
     const auto& res = Exec("SELECT NAME, KCAL, ID from INGREDIENTS", {});
     for (auto& row : res.rows) {

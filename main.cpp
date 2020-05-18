@@ -95,7 +95,7 @@ int main(int argc, char** argv) {
 
     srv.Get("/get_ingredients", [&db](const httplib::Request& req,
                                       httplib::Response& res) {
-        res.set_content(json11::Json(db->GetIngredients()).dump(), "text/json");
+        res.set_content(json11::Json(db->GetProducts()).dump(), "text/json");
     });
 
     srv.Post("/add_ingredient", [&db](const httplib::Request& req,
@@ -125,7 +125,7 @@ int main(int argc, char** argv) {
         }
 
         uint32_t kcal = js["kcal"].int_value();
-        auto result = db->AddProduct({std::move(name), kcal});
+        auto result = db->AddProduct(std::move(name), kcal);
         switch (result.code) {
             case DB::Result::OK: {
                 res.set_content(std::to_string(result.id), "text/plain");
@@ -189,7 +189,7 @@ int main(int argc, char** argv) {
         }
 
         uint32_t weight = js["weight"].int_value();
-        auto result = db->AddTableware({std::move(name), weight});
+        auto result = db->AddTableware(std::move(name), weight);
         switch (result.code) {
             case DB::Result::OK: {
                 res.set_content(std::to_string(result.id), "text/plain");
@@ -244,7 +244,7 @@ int main(int argc, char** argv) {
         std::stringstream text;
         if (intent_name == "ingredients") {
             text << "Наши ингредиенты:";
-            for (const auto& ingredient : db->GetIngredients()) {
+            for (const auto& ingredient : db->GetProducts()) {
                 text << "\n"
                      << ingredient.name << " по " << ingredient.kcal
                      << " калории,";
