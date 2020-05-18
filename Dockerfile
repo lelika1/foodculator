@@ -8,8 +8,8 @@ COPY . /src
 RUN mkdir /build \
  && cd /build \
  && CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake /src \
- && make \
- && tests/tests
+ && make
+RUN tests/tests
 
 FROM BASE
 COPY --from=builder /build/foodculator /app/
