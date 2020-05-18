@@ -8,7 +8,7 @@ COPY . /src
 RUN mkdir /build \
  && cd /build \
  && CC=/usr/bin/clang CXX=/usr/bin/clang++ cmake /src \
- && make
+ && make -j$(nproc)
 RUN /build/tests/tests
 
 FROM BASE
