@@ -12,32 +12,32 @@ class sqlite3;
 namespace foodculator {
 
 struct Ingredient {
-    std::string name_;
-    uint32_t kcal_;
-    size_t id_;
+    std::string name;
+    uint32_t kcal;
+    size_t id;
 
-    Ingredient(std::string name, uint32_t kcal, size_t id = 0)
-        : name_(std::move(name)), kcal_(kcal), id_(id) {}
+    Ingredient(std::string n, uint32_t k, size_t i = 0)
+        : name(std::move(n)), kcal(k), id(i) {}
 
     json11::Json to_json() const {
-        return json11::Json::object{{"name", name_},
-                                    {"kcal", std::to_string(kcal_)},
-                                    {"id", std::to_string(id_)}};
+        return json11::Json::object{{"name", name},
+                                    {"kcal", std::to_string(kcal)},
+                                    {"id", std::to_string(id)}};
     }
 };
 
 struct Tableware {
-    std::string name_;
-    uint32_t weight_;
-    size_t id_;
+    std::string name;
+    uint32_t weight;
+    size_t id;
 
-    Tableware(std::string name, uint32_t weight, size_t id = 0)
-        : name_(std::move(name)), weight_(weight), id_(id) {}
+    Tableware(std::string n, uint32_t w, size_t i = 0)
+        : name(std::move(n)), weight(w), id(i) {}
 
     json11::Json to_json() const {
-        return json11::Json::object{{"name", name_},
-                                    {"weight", std::to_string(weight_)},
-                                    {"id", std::to_string(id_)}};
+        return json11::Json::object{{"name", name},
+                                    {"weight", std::to_string(weight)},
+                                    {"id", std::to_string(id)}};
     }
 };
 

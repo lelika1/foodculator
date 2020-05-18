@@ -53,14 +53,14 @@ DB::~DB() {
 }
 
 DB::Result DB::AddProduct(const Ingredient& ingr) {
-    std::vector<BindParameter> params = {BindParameter(ingr.name_.c_str()),
-                                         BindParameter(ingr.kcal_)};
+    std::vector<BindParameter> params = {BindParameter(ingr.name.c_str()),
+                                         BindParameter(ingr.kcal)};
     return Insert("INGREDIENTS", {"NAME", "KCAL"}, "ID", params);
 }
 
 DB::Result DB::AddTableware(const Tableware& tw) {
-    std::vector<BindParameter> params = {BindParameter(tw.name_.c_str()),
-                                         BindParameter(tw.weight_)};
+    std::vector<BindParameter> params = {BindParameter(tw.name.c_str()),
+                                         BindParameter(tw.weight)};
 
     return Insert("TABLEWARE", {"NAME", "WEIGHT"}, "ID", params);
 }
