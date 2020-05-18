@@ -11,8 +11,11 @@ namespace foodculator {
 std::unique_ptr<DB> DB::Create(std::string_view path) {
     sqlite3* db = nullptr;
 
-    if (int st = sqlite3_config(SQLITE_CONFIG_SERIALIZED); st != SQLITE_OK) {
-        std::cerr << "SQL config error: " << st << std::endl;
+    if (path != ":memory:") {
+        if (int st = sqlite3_config(SQLITE_CONFIG_SERIALIZED);
+            st != SQLITE_OK) {
+            std::cerr << "SQL config error: " << st << std::endl;
+        }
     }
 
     if (sqlite3_open(path.data(), &db) != SQLITE_OK) {
