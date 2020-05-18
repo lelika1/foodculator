@@ -116,8 +116,8 @@ std::vector<Ingredient> DB::GetIngredients() {
     std::vector<Ingredient> ret;
     const auto& res = Exec("SELECT NAME, KCAL, ID from INGREDIENTS", {});
     for (auto& row : res.rows) {
-        ret.emplace_back(std::move(row[0]), std::stoi(row[1]),
-                         std::stoi(row[2]));
+        ret.emplace_back(std::move(row[0]), std::stoul(row[1]),
+                         std::stoull(row[2]));
     }
     return ret;
 }
@@ -126,8 +126,8 @@ std::vector<Tableware> DB::GetTableware() {
     std::vector<Tableware> ret;
     const auto& res = Exec("SELECT NAME, WEIGHT, ID from TABLEWARE", {});
     for (auto& row : res.rows) {
-        ret.emplace_back(std::move(row[0]), std::stoi(row[1]),
-                         std::stoi(row[2]));
+        ret.emplace_back(std::move(row[0]), std::stoul(row[1]),
+                         std::stoull(row[2]));
     }
     return ret;
 }

@@ -149,7 +149,8 @@ int main(int argc, char** argv) {
 
     srv.Delete(R"(/ingredient/(\d+))", [&db](const httplib::Request& req,
                                              httplib::Response& res) {
-        if (auto id = std::stoi(req.matches[1].str()); !db->DeleteProduct(id)) {
+        size_t id = std::stoull(req.matches[1].str());
+        if (!db->DeleteProduct(id)) {
             res.set_content(
                 "An ingredient wasn't deleted. Some SQL error occured.",
                 "text/plain");
@@ -210,7 +211,7 @@ int main(int argc, char** argv) {
 
     srv.Delete(R"(/tableware/(\d+))", [&db](const httplib::Request& req,
                                             httplib::Response& res) {
-        int id = std::stoi(req.matches[1].str());
+        size_t id = std::stoull(req.matches[1].str());
         if (!db->DeleteTableware(id)) {
             res.set_content("A pot wasn't deleted. Some SQL error occured.",
                             "text/plain");
