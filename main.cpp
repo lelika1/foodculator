@@ -15,8 +15,7 @@
 namespace {
 std::string ReadHtml(const std::string& path) {
     std::ifstream in(path);
-    std::string str{std::istreambuf_iterator<char>(in),
-                    std::istreambuf_iterator<char>()};
+    std::string str{std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>()};
     in.close();
     return str;
 }
@@ -24,16 +23,14 @@ std::string ReadHtml(const std::string& path) {
 // TODO(luckygeck): Move to separate file.
 std::string RenderDialogflowResponse(std::string text) {
     std::vector<json11::Json> jsons;
-    auto simpleResponse = json11::Json::object{
-        {"simpleResponse", json11::Json::object{{"textToSpeech", text}}}};
+    auto simpleResponse =
+        json11::Json::object{{"simpleResponse", json11::Json::object{{"textToSpeech", text}}}};
 
     json11::Json ret = json11::Json::object{
         {"fulfillmentMessages",
          json11::Json::array{
              json11::Json::object{
-                 {"text",
-                  json11::Json::object{
-                      {"text", json11::Json::array{std::move(text)}}}}},
+                 {"text", json11::Json::object{{"text", json11::Json::array{std::move(text)}}}}},
          }},
         {
             "payload",
@@ -41,8 +38,7 @@ std::string RenderDialogflowResponse(std::string text) {
                 {"google", json11::Json::object{{
                                "richResponse",
                                json11::Json::object{
-                                   {"items", json11::Json::array{std::move(
-                                                 simpleResponse)}}},
+                                   {"items", json11::Json::array{std::move(simpleResponse)}}},
                            }}}},
         },
     };
@@ -63,8 +59,7 @@ int main(int argc, char** argv) {
     using foodculator::DB;
 
     if (argc != 3) {
-        std::cerr << "usage: " << argv[0]
-                  << " path_to_static_files path_to_database" << std::endl;
+        std::cerr << "usage: " << argv[0] << " path_to_static_files path_to_database" << std::endl;
         return 1;
     }
 
@@ -84,42 +79,38 @@ int main(int argc, char** argv) {
         {"/", "/index.html"},
         {"/ingredients", "/ingredients.html"},
         {"/tableware", "/tableware.html"},
-        {"/new_recipe", "/recipe.html"}};
+        {"/new_recipe", "/recipe.html"},
+    };
 
     for (const auto& [page, path] : html_pages) {
-        srv.Get(page, [abs_path = (path_to_static + path)](
-                          const httplib::Request& req, httplib::Response& res) {
+        srv.Get(page, [abs_path = (path_to_static + path)](const httplib::Request& req,
+                                                           httplib::Response& res) {
             res.set_content(ReadHtml(abs_path), "text/html");
         });
     }
 
-    srv.Get("/get_ingredients", [&db](const httplib::Request& req,
-                                      httplib::Response& res) {
+    srv.Get("/get_ingredients", [&db](const httplib::Request& req, httplib::Response& res) {
         res.set_content(json11::Json(db->GetProducts()).dump(), "text/json");
     });
 
-    srv.Post("/add_ingredient", [&db](const httplib::Request& req,
-                                      httplib::Response& res) {
+    srv.Post("/add_ingredient", [&db](const httplib::Request& req, httplib::Response& res) {
         std::string err;
         json11::Json js = json11::Json::parse(req.body, err);
 
         std::string name = js["product"].string_value();
 
-        if (!err.empty() || name.empty() ||
-            !js.has_shape({{"kcal", json11::Json::NUMBER}}, err)) {
+        if (!err.empty() || name.empty() || !js.has_shape({{"kcal", json11::Json::NUMBER}}, err)) {
             std::cerr << "Error: " << err << std::endl;
 
-            res.set_content(
-                "An ingredient wasn't added. Some information is missing.",
-                "text/plain");
+            res.set_content("An ingredient wasn't added. Some information is missing.",
+                            "text/plain");
             res.status = 400;
             return;
         }
 
         if (js["kcal"].int_value() < 0) {
-            res.set_content(
-                "An ingredient wasn't added. The energy couldn't be negative.",
-                "text/plain");
+            res.set_content("An ingredient wasn't added. The energy couldn't be negative.",
+                            "text/plain");
             res.status = 400;
             return;
         }
@@ -132,39 +123,31 @@ int main(int argc, char** argv) {
                 return;
             }
             case DB::Result::DUPLICATE: {
-                res.set_content(
-                    "This ingredient already exists in the database.",
-                    "text/plain");
+                res.set_content("This ingredient already exists in the database.", "text/plain");
                 res.status = 500;
                 return;
             }
             default: {
-                res.set_content(
-                    "An ingredient wasn't added. Some SQL error occured.",
-                    "text/plain");
+                res.set_content("An ingredient wasn't added. Some SQL error occured.",
+                                "text/plain");
                 res.status = 500;
             }
         }
     });
 
-    srv.Delete(R"(/ingredient/(\d+))", [&db](const httplib::Request& req,
-                                             httplib::Response& res) {
+    srv.Delete(R"(/ingredient/(\d+))", [&db](const httplib::Request& req, httplib::Response& res) {
         size_t id = std::stoull(req.matches[1].str());
         if (!db->DeleteProduct(id)) {
-            res.set_content(
-                "An ingredient wasn't deleted. Some SQL error occured.",
-                "text/plain");
+            res.set_content("An ingredient wasn't deleted. Some SQL error occured.", "text/plain");
             res.status = 500;
         }
     });
 
-    srv.Get("/get_tableware", [&db](const httplib::Request& req,
-                                    httplib::Response& res) {
+    srv.Get("/get_tableware", [&db](const httplib::Request& req, httplib::Response& res) {
         res.set_content(json11::Json(db->GetTableware()).dump(), "text/json");
     });
 
-    srv.Post("/add_tableware", [&db](const httplib::Request& req,
-                                     httplib::Response& res) {
+    srv.Post("/add_tableware", [&db](const httplib::Request& req, httplib::Response& res) {
         std::string err;
         json11::Json js = json11::Json::parse(req.body, err);
 
@@ -174,16 +157,13 @@ int main(int argc, char** argv) {
             !js.has_shape({{"weight", json11::Json::NUMBER}}, err)) {
             std::cerr << "Error: " << err << std::endl;
 
-            res.set_content("A pot wasn't added. Some information is missing.",
-                            "text/plain");
+            res.set_content("A pot wasn't added. Some information is missing.", "text/plain");
             res.status = 400;
             return;
         }
 
         if (js["weight"].int_value() < 0) {
-            res.set_content(
-                "A pot wasn't added. The weight couldn't be negative.",
-                "text/plain");
+            res.set_content("A pot wasn't added. The weight couldn't be negative.", "text/plain");
             res.status = 400;
             return;
         }
@@ -196,36 +176,30 @@ int main(int argc, char** argv) {
                 return;
             }
             case DB::Result::DUPLICATE: {
-                res.set_content("This pot already exists in the database.",
-                                "text/plain");
+                res.set_content("This pot already exists in the database.", "text/plain");
                 res.status = 500;
                 return;
             }
             default: {
-                res.set_content("A pot wasn't added. Some SQL error occured.",
-                                "text/plain");
+                res.set_content("A pot wasn't added. Some SQL error occured.", "text/plain");
                 res.status = 500;
             }
         }
     });
 
-    srv.Delete(R"(/tableware/(\d+))", [&db](const httplib::Request& req,
-                                            httplib::Response& res) {
+    srv.Delete(R"(/tableware/(\d+))", [&db](const httplib::Request& req, httplib::Response& res) {
         size_t id = std::stoull(req.matches[1].str());
         if (!db->DeleteTableware(id)) {
-            res.set_content("A pot wasn't deleted. Some SQL error occured.",
-                            "text/plain");
+            res.set_content("A pot wasn't deleted. Some SQL error occured.", "text/plain");
             res.status = 500;
         }
     });
 
-    srv.Post("/dialogflow", [&db](const httplib::Request& req,
-                                  httplib::Response& res) {
+    srv.Post("/dialogflow", [&db](const httplib::Request& req, httplib::Response& res) {
         std::string err;
         const json11::Json in = json11::Json::parse(req.body, err);
         if (!err.empty()) {
-            res.set_content("Failed to parse input as json: " + err,
-                            "text/plain");
+            res.set_content("Failed to parse input as json: " + err, "text/plain");
             res.status = 400;
             return;
         }
@@ -234,20 +208,16 @@ int main(int argc, char** argv) {
         const std::string& session = in["session"].string_value();
         const auto& query = in["queryResult"];
         const std::string& query_text = query["queryText"].string_value();
-        const std::string& intent_name =
-            query["intent"]["displayName"].string_value();
+        const std::string& intent_name = query["intent"]["displayName"].string_value();
 
         std::cout << "[dialogflow] id=" << resp_id << " session=" << session
-                  << " query=" << query_text << " intent=" << intent_name
-                  << std::endl;
+                  << " query=" << query_text << " intent=" << intent_name << std::endl;
 
         std::stringstream text;
         if (intent_name == "ingredients") {
             text << "Наши ингредиенты:";
             for (const auto& ingredient : db->GetProducts()) {
-                text << "\n"
-                     << ingredient.name << " по " << ingredient.kcal
-                     << " калории,";
+                text << "\n" << ingredient.name << " по " << ingredient.kcal << " калории,";
             }
         } else if (intent_name == "pots") {
             text << "Наша посуда:";
@@ -258,8 +228,7 @@ int main(int argc, char** argv) {
             // This intent is not supported.
             return;
         }
-        res.set_content(RenderDialogflowResponse(text.str()),
-                        "text/json; charset=utf-8");
+        res.set_content(RenderDialogflowResponse(text.str()), "text/json; charset=utf-8");
     });
 
     std::string version = "UNKNOWN";
@@ -267,8 +236,7 @@ int main(int argc, char** argv) {
         version = v;
     }
 
-    srv.Get("/version", [&version](const httplib::Request& req,
-                                   httplib::Response& res) {
+    srv.Get("/version", [&version](const httplib::Request& req, httplib::Response& res) {
         res.set_content("Foodculator version: " + version, "text/plain");
     });
 
@@ -285,8 +253,7 @@ int main(int argc, char** argv) {
     server = &srv;
     std::signal(SIGTERM, signal_handler);
 
-    srv.set_logger([](const httplib::Request& req,
-                      const httplib::Response& res) {
+    srv.set_logger([](const httplib::Request& req, const httplib::Response& res) {
         std::cout << req.method << " " << req.path << ":\tcode=" << res.status
                   << " size=" << res.body.length() << "b" << std::endl;
     });

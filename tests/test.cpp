@@ -10,14 +10,13 @@
 
 namespace foodculator {
 
-std::optional<std::string> AddProducts(DB* db,
-                                       std::vector<Ingredient>* products) {
+std::optional<std::string> AddProducts(DB* db, std::vector<Ingredient>* products) {
     for (auto& ingr : *products) {
         auto st = db->AddProduct(ingr.name, ingr.kcal);
         if (st.code != DB::Result::OK) {
             std::stringstream err;
-            err << "AddProduct(" << ingr.name << ", " << ingr.kcal
-                << ") = " << st.code << ". Want " << DB::Result::OK;
+            err << "AddProduct(" << ingr.name << ", " << ingr.kcal << ") = " << st.code << ". Want "
+                << DB::Result::OK;
             return err.str();
         }
         ingr.id = st.id;
@@ -25,14 +24,13 @@ std::optional<std::string> AddProducts(DB* db,
     return std::nullopt;
 }
 
-std::optional<std::string> AddTableware(DB* db,
-                                        std::vector<Tableware>* tableware) {
+std::optional<std::string> AddTableware(DB* db, std::vector<Tableware>* tableware) {
     for (auto& tw : *tableware) {
         auto st = db->AddTableware(tw.name, tw.weight);
         if (st.code != DB::Result::OK) {
             std::stringstream err;
-            err << "AddTableware(" << tw.name << ", " << tw.weight
-                << ") = " << st.code << ". Want " << DB::Result::OK;
+            err << "AddTableware(" << tw.name << ", " << tw.weight << ") = " << st.code << ". Want "
+                << DB::Result::OK;
             return err.str();
         }
         tw.id = st.id;
@@ -55,18 +53,14 @@ std::string ToString(const std::vector<T>& data) {
 }
 
 template <class T>
-std::optional<std::string> CompareVectors(std::string_view func,
-                                          std::vector<T> got,
+std::optional<std::string> CompareVectors(std::string_view func, std::vector<T> got,
                                           std::vector<T> want) {
-    std::sort(want.begin(), want.end(),
-              [](const T& lhs, const T& rhs) { return lhs.id < rhs.id; });
-
-    std::sort(got.begin(), got.end(),
-              [](const T& lhs, const T& rhs) { return lhs.id < rhs.id; });
+    std::sort(want.begin(), want.end(), [](const T& lhs, const T& rhs) { return lhs.id < rhs.id; });
+    std::sort(got.begin(), got.end(), [](const T& lhs, const T& rhs) { return lhs.id < rhs.id; });
 
     auto want_str = ToString(want);
     auto got_str = ToString(got);
-    if (got.size() != want.size() || want_str != got_str) {
+    if (want_str != got_str) {
         std::stringstream err;
         err << func << "() = " << got_str << ". Want " << want_str;
         return err.str();
@@ -80,15 +74,13 @@ std::optional<std::string> TestEmptyDatabase() {
 
     if (auto ingredients = db->GetProducts(); !ingredients.empty()) {
         std::stringstream err;
-        err << "GetProducts() from empty DB = " << ToString(ingredients)
-            << ". Want: []";
+        err << "GetProducts() from empty DB = " << ToString(ingredients) << ". Want: []";
         return err.str();
     }
 
     if (auto tableware = db->GetTableware(); !tableware.empty()) {
         std::stringstream err;
-        err << "GetTableware() from empty DB = " << ToString(tableware)
-            << ". Want: []";
+        err << "GetTableware() from empty DB = " << ToString(tableware) << ". Want: []";
         return err.str();
     }
 
@@ -101,8 +93,7 @@ std::optional<std::string> TestEmptyDatabase() {
 
     if (!db->DeleteTableware(id)) {
         std::stringstream err;
-        err << "DeleteTableware(" << id
-            << ") from empty DB = false. Want true.";
+        err << "DeleteTableware(" << id << ") from empty DB = false. Want true.";
         return err.str();
     }
 
@@ -124,16 +115,14 @@ std::optional<std::string> TestAddProduct() {
     }
 
     const auto& dupl = products[0];
-    auto st = db->AddProduct(dupl.name, dupl.kcal);
-    if (st.code != DB::Result::DUPLICATE) {
+    if (auto st = db->AddProduct(dupl.name, dupl.kcal); st.code != DB::Result::DUPLICATE) {
         std::stringstream err;
-        err << "AddProduct(" << dupl.name << ", " << dupl.kcal
-            << ") = " << st.code << ". Want " << DB::Result::DUPLICATE;
+        err << "AddProduct(" << dupl.name << ", " << dupl.kcal << ") = " << st.code << ". Want "
+            << DB::Result::DUPLICATE;
         return err.str();
     }
 
-    return CompareVectors("GetProducts", db->GetProducts(),
-                          std::move(products));
+    return CompareVectors("GetProducts", db->GetProducts(), std::move(products));
 }
 
 std::optional<std::string> TestDeleteProduct() {
@@ -159,9 +148,7 @@ std::optional<std::string> TestDeleteProduct() {
             return err.str();
         }
 
-        if (auto st =
-                CompareVectors("GetProducts", db->GetProducts(), products);
-            st) {
+        if (auto st = CompareVectors("GetProducts", db->GetProducts(), products); st) {
             return st;
         }
     }
@@ -182,16 +169,14 @@ std::optional<std::string> TestAddTableware() {
     }
 
     const auto& dupl = tableware[0];
-    auto st = db->AddTableware(dupl.name, dupl.weight);
-    if (st.code != DB::Result::DUPLICATE) {
+    if (auto st = db->AddTableware(dupl.name, dupl.weight); st.code != DB::Result::DUPLICATE) {
         std::stringstream err;
-        err << "AddTableware(" << dupl.name << ", " << dupl.weight
-            << ") = " << st.code << ". Want " << DB::Result::DUPLICATE;
+        err << "AddTableware(" << dupl.name << ", " << dupl.weight << ") = " << st.code << ". Want "
+            << DB::Result::DUPLICATE;
         return err.str();
     }
 
-    return CompareVectors("GetTableware", db->GetTableware(),
-                          std::move(tableware));
+    return CompareVectors("GetTableware", db->GetTableware(), std::move(tableware));
 }
 
 std::optional<std::string> TestDeleteTableware() {
@@ -216,9 +201,7 @@ std::optional<std::string> TestDeleteTableware() {
             return err.str();
         }
 
-        if (auto st =
-                CompareVectors("GetTableware", db->GetTableware(), tableware);
-            st) {
+        if (auto st = CompareVectors("GetTableware", db->GetTableware(), tableware); st) {
             return st;
         }
     }
@@ -230,14 +213,11 @@ std::optional<std::string> TestDeleteTableware() {
 
 int main() {
     using namespace foodculator;
-    std::map<std::string_view, std::function<std::optional<std::string>()>>
-        tests = {
-            {"TestEmptyDatabase", TestEmptyDatabase},
-            {"TestAddProduct", TestAddProduct},
-            {"TestDeleteProduct", TestDeleteProduct},
-            {"TestAddTableware", TestAddTableware},
-            {"TestDeleteTableware", TestDeleteTableware},
-        };
+    std::map<std::string_view, std::function<std::optional<std::string>()>> tests = {
+        {"TestEmptyDatabase", TestEmptyDatabase},     {"TestAddProduct", TestAddProduct},
+        {"TestDeleteProduct", TestDeleteProduct},     {"TestAddTableware", TestAddTableware},
+        {"TestDeleteTableware", TestDeleteTableware},
+    };
 
     bool failed = false;
     for (const auto& [name, fn] : tests) {

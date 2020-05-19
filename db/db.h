@@ -17,15 +17,13 @@ struct Ingredient {
     uint32_t kcal;
     size_t id;
 
-    Ingredient(std::string n, uint32_t k, size_t i = 0)
-        : name(std::move(n)), kcal(k), id(i) {}
+    Ingredient(std::string n, uint32_t k, size_t i = 0) : name(std::move(n)), kcal(k), id(i) {}
 
     std::string ToString() const { return this->to_json().dump(); }
 
     json11::Json to_json() const {
-        return json11::Json::object{{"name", name},
-                                    {"kcal", std::to_string(kcal)},
-                                    {"id", std::to_string(id)}};
+        return json11::Json::object{
+            {"name", name}, {"kcal", std::to_string(kcal)}, {"id", std::to_string(id)}};
     }
 };
 
@@ -34,15 +32,13 @@ struct Tableware {
     uint32_t weight;
     size_t id;
 
-    Tableware(std::string n, uint32_t w, size_t i = 0)
-        : name(std::move(n)), weight(w), id(i) {}
+    Tableware(std::string n, uint32_t w, size_t i = 0) : name(std::move(n)), weight(w), id(i) {}
 
     std::string ToString() const { return this->to_json().dump(); }
 
     json11::Json to_json() const {
-        return json11::Json::object{{"name", name},
-                                    {"weight", std::to_string(weight)},
-                                    {"id", std::to_string(id)}};
+        return json11::Json::object{
+            {"name", name}, {"weight", std::to_string(weight)}, {"id", std::to_string(id)}};
     }
 };
 
@@ -71,18 +67,15 @@ class DB {
 
     explicit DB(sqlite3* db) : db_(db) {}
 
-    DB::Result Insert(std::string_view table,
-                      const std::vector<std::string_view>& fields,
-                      std::string_view id_field,
-                      const std::vector<BindParameter>& params);
+    DB::Result Insert(std::string_view table, const std::vector<std::string_view>& fields,
+                      std::string_view id_field, const std::vector<BindParameter>& params);
 
     struct ExecResult {
         int status;
         std::vector<DBRow> rows;
     };
 
-    ExecResult Exec(std::string_view sql,
-                    const std::vector<BindParameter>& params);
+    ExecResult Exec(std::string_view sql, const std::vector<BindParameter>& params);
 
     std::mutex mu_;
     sqlite3* db_;
