@@ -20,10 +20,6 @@ struct Ingredient {
     Ingredient(std::string n, uint32_t k, size_t i = 0)
         : name(std::move(n)), kcal(k), id(i) {}
 
-    bool operator==(const Ingredient& rhs) {
-        return id == rhs.id && kcal == rhs.kcal && name == rhs.name;
-    }
-
     std::string ToString() const { return this->to_json().dump(); }
 
     json11::Json to_json() const {
@@ -40,10 +36,6 @@ struct Tableware {
 
     Tableware(std::string n, uint32_t w, size_t i = 0)
         : name(std::move(n)), weight(w), id(i) {}
-
-    bool operator==(const Tableware& rhs) {
-        return id == rhs.id && weight == rhs.weight && name == rhs.name;
-    }
 
     std::string ToString() const { return this->to_json().dump(); }
 
