@@ -7,3 +7,6 @@
 [submodule "tgbot-cpp"]
 	path = tgbot-cpp
 	url = https://github.com/reo7sp/tgbot-cpp
+[submodule "googletest"]
+	path = googletest
+	url = https://github.com/google/googletest/
