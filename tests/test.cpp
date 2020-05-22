@@ -1,6 +1,9 @@
+#include <bits/stdint-uintn.h>
+
 #include <cstddef>
 #include <functional>
 #include <iostream>
+#include <map>
 #include <optional>
 #include <sstream>
 #include <string_view>
@@ -96,6 +99,8 @@ std::optional<std::string> TestEmptyDatabase() {
         err << "DeleteTableware(" << id << ") from empty DB = false. Want true.";
         return err.str();
     }
+
+    // TODO Check Recipes
 
     return std::nullopt;
 }
@@ -209,6 +214,135 @@ std::optional<std::string> TestDeleteTableware() {
     return std::nullopt;
 }
 
+std::optional<std::string> TestCreateRecipe() {
+    // TODO implement
+    auto db = DB::Create(":memory:");
+
+    std::vector<Ingredient> products = {
+        {"milk", 48},
+        {"flour", 364},
+        {"egg", 156},
+    };
+    if (auto st = AddProducts(db.get(), &products); st) {
+        return st;
+    }
+
+    std::vector<FullRecipe> recipes = {
+        {{"pancake"},
+         "do it",
+         {
+             {products[0].id, 500},
+             {products[1].id, 200},
+         }},
+        {{"new cake"},
+         "description",
+         {
+             {products.back().id, 200},
+             {products[0].id, 50},
+         }},
+        {{"just salt"},
+         "easy-peasy",
+         {
+             {products.back().id, 200},
+         }},
+    };
+    std::vector<RecipeHeader> recipe_headers;
+    for (auto& recipe : recipes) {
+        std::map<size_t, uint32_t> ingredients;
+        for (const auto& ing : recipe.ingredients) {
+            ingredients[ing.ingredient_id] = ing.weight;
+        }
+        auto st = db->CreateRecipe(recipe.header.name, recipe.description, ingredients);
+        if (st.code != DB::Result::OK) {
+            std::stringstream err;
+            err << "CreateRecipe(" << recipe.header.name << ", " << recipe.description << ", "
+                << ToString(recipe.ingredients) << ") = " << st.code << ". Want " << DB::Result::OK;
+            return err.str();
+        }
+        recipe.header.id = st.id;
+        recipe_headers.emplace_back(recipe.header.name, st.id);
+    }
+
+    if (auto st = CompareVectors("GetRecipes", db->GetRecipes(), recipe_headers); st) {
+        return st;
+    }
+
+    return std::nullopt;
+}
+
+std::optional<std::string> TestDeleteRecipe() {
+    auto db = DB::Create(":memory:");
+
+    std::vector<Ingredient> products = {
+        {"milk", 48},
+        {"flour", 364},
+        {"egg", 156},
+        {"salt", 0},
+    };
+    if (auto st = AddProducts(db.get(), &products); st) {
+        return st;
+    }
+
+    std::vector<FullRecipe> recipes = {
+        {{"pancake"},
+         "do it",
+         {
+             {products[0].id, 500},
+             {products[1].id, 200},
+             {products[2].id, 300},
+         }},
+        {{"new cake"},
+         "description",
+         {
+             {products.back().id, 200},
+             {products[0].id, 50},
+         }},
+        {{"new cake 2"},
+         "description 2",
+         {
+             {products.back().id, 200},
+             {products[0].id, 50},
+         }},
+    };
+
+    std::vector<RecipeHeader> recipe_headers;
+    for (const auto& recipe : recipes) {
+        std::map<size_t, uint32_t> ingredients;
+        for (const auto& ing : recipe.ingredients) {
+            ingredients[ing.ingredient_id] = ing.weight;
+        }
+        auto st = db->CreateRecipe(recipe.header.name, recipe.description, ingredients);
+        if (st.code != DB::Result::OK) {
+            std::stringstream err;
+            err << "CreateRecipe(" << recipe.header.name << ", " << recipe.description << ", "
+                << ToString(recipe.ingredients) << ") = " << st.code << ". Want " << DB::Result::OK;
+            return err.str();
+        }
+        recipe_headers.emplace_back(recipe.header.name, st.id);
+    }
+
+    if (auto st = CompareVectors("GetRecipes", db->GetRecipes(), recipe_headers); st) {
+        return st;
+    }
+
+    while (!recipe_headers.empty()) {
+        size_t last_id = recipe_headers.back().id;
+        recipe_headers.pop_back();
+
+        if (!db->DeleteRecipe(last_id)) {
+            std::stringstream err;
+            err << "DeleteRecipe(" << last_id << ")=false. Want true.";
+            return err.str();
+        }
+
+        if (auto st = CompareVectors("GetRecipes", db->GetRecipes(), recipe_headers); st) {
+            return st;
+        }
+    }
+
+    return std::nullopt;
+}
+
 }  // namespace foodculator
 
 int main() {
@@ -216,7 +350,8 @@ int main() {
     std::map<std::string_view, std::function<std::optional<std::string>()>> tests = {
         {"TestEmptyDatabase", TestEmptyDatabase},     {"TestAddProduct", TestAddProduct},
         {"TestDeleteProduct", TestDeleteProduct},     {"TestAddTableware", TestAddTableware},
-        {"TestDeleteTableware", TestDeleteTableware},
+        {"TestDeleteTableware", TestDeleteTableware}, {"TestCreateRecipe", TestCreateRecipe},
+        {"TestDeleteRecipe", TestDeleteRecipe},
     };
 
     bool failed = false;
