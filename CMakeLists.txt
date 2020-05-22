@@ -34,6 +34,7 @@ add_subdirectory(db)
 add_subdirectory(json11)
 add_subdirectory(tgbot-cpp)
 add_subdirectory(tests)
+add_subdirectory(googletest)
 
 target_link_libraries(foodculator DbLib 
 								  Httplib 

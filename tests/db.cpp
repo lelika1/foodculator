@@ -1,4 +1,4 @@
-#include <bits/stdint-uintn.h>
+#include "db/db.h"
 
 #include <cstddef>
 #include <functional>
@@ -9,7 +9,7 @@
 #include <string_view>
 #include <vector>
 
-#include "db/db.h"
+#include "gtest/gtest.h"
 
 namespace foodculator {
 
@@ -345,7 +345,7 @@ std::optional<std::string> TestDeleteRecipe() {
 
 }  // namespace foodculator
 
-int main() {
+TEST(Legacy, AllOldTests) {
     using namespace foodculator;
     std::map<std::string_view, std::function<std::optional<std::string>()>> tests = {
         {"TestEmptyDatabase", TestEmptyDatabase},     {"TestAddProduct", TestAddProduct},
@@ -354,13 +354,8 @@ int main() {
         {"TestDeleteRecipe", TestDeleteRecipe},
     };
 
-    bool failed = false;
     for (const auto& [name, fn] : tests) {
         auto res = fn();
-        if (res) {
-            failed = true;
-        }
-        std::cout << name << ": " << res.value_or("passed") << std::endl;
+        EXPECT_FALSE(res) << name << ": " << res.value();
     }
-    return failed ? 1 : 0;
 }
