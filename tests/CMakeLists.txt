@@ -11,4 +11,4 @@ set_target_properties(tests
 )
 
 target_include_directories(tests PRIVATE "${PROJECT_SOURCE_DIR}")
-target_link_libraries(tests DbLib gtest)
+target_link_libraries(tests DbLib gtest gmock)

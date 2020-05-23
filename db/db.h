@@ -20,7 +20,7 @@ struct Ingredient {
     Ingredient(std::string name, uint32_t kcal, size_t id = 0)
         : name(std::move(name)), kcal(kcal), id(id) {}
 
-    std::string ToString() const { return this->to_json().dump(); }
+    friend void PrintTo(const Ingredient& v, std::ostream* os) { *os << v.to_json().dump(); }
     json11::Json to_json() const {
         return json11::Json::object{
             {"name", name}, {"kcal", std::to_string(kcal)}, {"id", std::to_string(id)}};
@@ -35,7 +35,7 @@ struct Tableware {
     Tableware(std::string name, uint32_t weight, size_t id = 0)
         : name(std::move(name)), weight(weight), id(id) {}
 
-    std::string ToString() const { return this->to_json().dump(); }
+    friend void PrintTo(const Tableware& v, std::ostream* os) { *os << v.to_json().dump(); }
     json11::Json to_json() const {
         return json11::Json::object{
             {"name", name}, {"weight", std::to_string(weight)}, {"id", std::to_string(id)}};
@@ -48,7 +48,7 @@ struct RecipeIngredient {
 
     RecipeIngredient(size_t id, uint32_t weight) : ingredient_id(id), weight(weight) {}
 
-    std::string ToString() const { return this->to_json().dump(); }
+    friend void PrintTo(const RecipeIngredient& v, std::ostream* os) { *os << v.to_json().dump(); }
     json11::Json to_json() const {
         return json11::Json::object{{"id", std::to_string(ingredient_id)},
                                     {"weight", std::to_string(weight)}};
@@ -62,7 +62,7 @@ struct RecipeHeader {
     RecipeHeader() {}
     RecipeHeader(std::string name, size_t id = 0) : name(std::move(name)), id(id) {}
 
-    std::string ToString() const { return this->to_json().dump(); }
+    friend void PrintTo(const RecipeHeader& v, std::ostream* os) { *os << v.to_json().dump(); }
     json11::Json to_json() const {
         return json11::Json::object{{"name", name}, {"id", std::to_string(id)}};
     }
@@ -73,7 +73,7 @@ struct FullRecipe {
     std::string description;
     std::vector<RecipeIngredient> ingredients;
 
-    std::string ToString() const { return this->to_json().dump(); }
+    friend void PrintTo(const FullRecipe& v, std::ostream* os) { *os << v.to_json().dump(); }
     json11::Json to_json() const {
         return json11::Json::object{{"header", header.to_json()},
                                     {"description", description},
@@ -128,4 +128,5 @@ class DB {
     std::mutex mu_;
     sqlite3* db_;
 };
+
 }  // namespace foodculator

@@ -9,103 +9,45 @@
 #include <string_view>
 #include <vector>
 
+#include "gmock/gmock.h"
 #include "gtest/gtest.h"
 
 namespace foodculator {
+namespace {
 
-std::optional<std::string> AddProducts(DB* db, std::vector<Ingredient>* products) {
+void AddProducts(DB* db, std::vector<Ingredient>* products) {
     for (auto& ingr : *products) {
         auto st = db->AddProduct(ingr.name, ingr.kcal);
-        if (st.code != DB::Result::OK) {
-            std::stringstream err;
-            err << "AddProduct(" << ingr.name << ", " << ingr.kcal << ") = " << st.code << ". Want "
-                << DB::Result::OK;
-            return err.str();
-        }
+        ASSERT_EQ(st.code, DB::Result::OK)
+            << "AddProduct(" << ingr.name << ", " << ingr.kcal << ")";
         ingr.id = st.id;
     }
-    return std::nullopt;
 }
 
-std::optional<std::string> AddTableware(DB* db, std::vector<Tableware>* tableware) {
+void AddTableware(DB* db, std::vector<Tableware>* tableware) {
     for (auto& tw : *tableware) {
         auto st = db->AddTableware(tw.name, tw.weight);
-        if (st.code != DB::Result::OK) {
-            std::stringstream err;
-            err << "AddTableware(" << tw.name << ", " << tw.weight << ") = " << st.code << ". Want "
-                << DB::Result::OK;
-            return err.str();
-        }
+        ASSERT_EQ(st.code, DB::Result::OK)
+            << "AddTableware(" << tw.name << ", " << tw.weight << ")";
         tw.id = st.id;
     }
-    return std::nullopt;
 }
 
-template <class T>
-std::string ToString(const std::vector<T>& data) {
-    std::stringstream ss;
-    ss << "[";
-    for (size_t i = 0; i < data.size(); ++i) {
-        if (i != 0) {
-            ss << ",";
-        }
-        ss << data[i].ToString();
-    }
-    ss << "]";
-    return ss.str();
+MATCHER(EqAsStrings, "") {
+    return testing::PrintToString(std::get<0>(arg)) == testing::PrintToString(std::get<1>(arg));
 }
 
-template <class T>
-std::optional<std::string> CompareVectors(std::string_view func, std::vector<T> got,
-                                          std::vector<T> want) {
-    std::sort(want.begin(), want.end(), [](const T& lhs, const T& rhs) { return lhs.id < rhs.id; });
-    std::sort(got.begin(), got.end(), [](const T& lhs, const T& rhs) { return lhs.id < rhs.id; });
-
-    auto want_str = ToString(want);
-    auto got_str = ToString(got);
-    if (want_str != got_str) {
-        std::stringstream err;
-        err << func << "() = " << got_str << ". Want " << want_str;
-        return err.str();
-    }
-
-    return std::nullopt;
-}
-
-std::optional<std::string> TestEmptyDatabase() {
+TEST(DB, EmptyDatabase) {
     auto db = DB::Create(":memory:");
 
-    if (auto ingredients = db->GetProducts(); !ingredients.empty()) {
-        std::stringstream err;
-        err << "GetProducts() from empty DB = " << ToString(ingredients) << ". Want: []";
-        return err.str();
-    }
-
-    if (auto tableware = db->GetTableware(); !tableware.empty()) {
-        std::stringstream err;
-        err << "GetTableware() from empty DB = " << ToString(tableware) << ". Want: []";
-        return err.str();
-    }
-
-    const size_t id = 100;
-    if (!db->DeleteProduct(id)) {
-        std::stringstream err;
-        err << "DeleteProduct(" << id << ") from empty DB = false. Want true.";
-        return err.str();
-    }
-
-    if (!db->DeleteTableware(id)) {
-        std::stringstream err;
-        err << "DeleteTableware(" << id << ") from empty DB = false. Want true.";
-        return err.str();
-    }
-
+    EXPECT_THAT(db->GetProducts(), testing::IsEmpty());
+    EXPECT_THAT(db->GetTableware(), testing::IsEmpty());
+    EXPECT_TRUE(db->DeleteProduct(100 /*id*/));
+    EXPECT_TRUE(db->DeleteTableware(100 /*id*/));
     // TODO Check Recipes
-
-    return std::nullopt;
 }
 
-std::optional<std::string> TestAddProduct() {
+TEST(DB, AddProduct) {
     auto db = DB::Create(":memory:");
 
     std::vector<Ingredient> products = {
@@ -115,22 +57,15 @@ std::optional<std::string> TestAddProduct() {
         {"avocado", 160},
     };
 
-    if (auto st = AddProducts(db.get(), &products); st) {
-        return st;
-    }
+    AddProducts(db.get(), &products);
 
     const auto& dupl = products[0];
-    if (auto st = db->AddProduct(dupl.name, dupl.kcal); st.code != DB::Result::DUPLICATE) {
-        std::stringstream err;
-        err << "AddProduct(" << dupl.name << ", " << dupl.kcal << ") = " << st.code << ". Want "
-            << DB::Result::DUPLICATE;
-        return err.str();
-    }
-
-    return CompareVectors("GetProducts", db->GetProducts(), std::move(products));
+    ASSERT_EQ(db->AddProduct(dupl.name, dupl.kcal).code, DB::Result::DUPLICATE)
+        << "name=" << dupl.name << " kcal=" << dupl.kcal;
+    EXPECT_THAT(db->GetProducts(), testing::UnorderedPointwise(EqAsStrings(), products));
 }
 
-std::optional<std::string> TestDeleteProduct() {
+TEST(DB, DeleteProduct) {
     auto db = DB::Create(":memory:");
 
     std::vector<Ingredient> products = {
@@ -139,29 +74,19 @@ std::optional<std::string> TestDeleteProduct() {
         {"see-salt", 0},
         {"avocado", 160},
     };
-    if (auto st = AddProducts(db.get(), &products); st) {
-        return st;
-    }
+
+    AddProducts(db.get(), &products);
 
     while (!products.empty()) {
         size_t last_id = products.back().id;
         products.pop_back();
 
-        if (!db->DeleteProduct(last_id)) {
-            std::stringstream err;
-            err << "DeleteProduct(" << last_id << ")=false. Want true.";
-            return err.str();
-        }
-
-        if (auto st = CompareVectors("GetProducts", db->GetProducts(), products); st) {
-            return st;
-        }
+        EXPECT_TRUE(db->DeleteProduct(last_id)) << last_id;
+        EXPECT_THAT(db->GetProducts(), testing::UnorderedPointwise(EqAsStrings(), products));
     }
-
-    return std::nullopt;
 }
 
-std::optional<std::string> TestAddTableware() {
+TEST(DB, AddTableware) {
     auto db = DB::Create(":memory:");
 
     std::vector<Tableware> tableware = {
@@ -169,22 +94,16 @@ std::optional<std::string> TestAddTableware() {
         {"small pot", 670},
         {"big-pot", 1000},
     };
-    if (auto st = AddTableware(db.get(), &tableware); st) {
-        return st;
-    }
+    AddTableware(db.get(), &tableware);
 
     const auto& dupl = tableware[0];
-    if (auto st = db->AddTableware(dupl.name, dupl.weight); st.code != DB::Result::DUPLICATE) {
-        std::stringstream err;
-        err << "AddTableware(" << dupl.name << ", " << dupl.weight << ") = " << st.code << ". Want "
-            << DB::Result::DUPLICATE;
-        return err.str();
-    }
 
-    return CompareVectors("GetTableware", db->GetTableware(), std::move(tableware));
+    ASSERT_EQ(db->AddTableware(dupl.name, dupl.weight).code, DB::Result::DUPLICATE)
+        << "name=" << dupl.name << " weight=" << dupl.weight;
+    EXPECT_THAT(db->GetTableware(), testing::UnorderedPointwise(EqAsStrings(), tableware));
 }
 
-std::optional<std::string> TestDeleteTableware() {
+TEST(DB, DeleteTableware) {
     auto db = DB::Create(":memory:");
 
     std::vector<Tableware> tableware = {
@@ -192,29 +111,18 @@ std::optional<std::string> TestDeleteTableware() {
         {"small pot", 670},
         {"big-pot", 1000},
     };
-    if (auto st = AddTableware(db.get(), &tableware); st) {
-        return st;
-    }
+    AddTableware(db.get(), &tableware);
 
     while (!tableware.empty()) {
         size_t last_id = tableware.back().id;
         tableware.pop_back();
 
-        if (!db->DeleteTableware(last_id)) {
-            std::stringstream err;
-            err << "DeleteTableware(" << last_id << ")=false. Want true.";
-            return err.str();
-        }
-
-        if (auto st = CompareVectors("GetTableware", db->GetTableware(), tableware); st) {
-            return st;
-        }
+        EXPECT_TRUE(db->DeleteTableware(last_id)) << last_id;
+        EXPECT_THAT(db->GetTableware(), testing::UnorderedPointwise(EqAsStrings(), tableware));
     }
-
-    return std::nullopt;
 }
 
-std::optional<std::string> TestCreateRecipe() {
+TEST(DB, CreateRecipe) {
     // TODO implement
     auto db = DB::Create(":memory:");
 
@@ -223,9 +131,7 @@ std::optional<std::string> TestCreateRecipe() {
         {"flour", 364},
         {"egg", 156},
     };
-    if (auto st = AddProducts(db.get(), &products); st) {
-        return st;
-    }
+    AddProducts(db.get(), &products);
 
     std::vector<FullRecipe> recipes = {
         {{"pancake"},
@@ -253,24 +159,16 @@ std::optional<std::string> TestCreateRecipe() {
             ingredients[ing.ingredient_id] = ing.weight;
         }
         auto st = db->CreateRecipe(recipe.header.name, recipe.description, ingredients);
-        if (st.code != DB::Result::OK) {
-            std::stringstream err;
-            err << "CreateRecipe(" << recipe.header.name << ", " << recipe.description << ", "
-                << ToString(recipe.ingredients) << ") = " << st.code << ". Want " << DB::Result::OK;
-            return err.str();
-        }
+        EXPECT_EQ(st.code, DB::Result::OK)
+            << "CreateRecipe(name=" << recipe.header.name << ", description=" << recipe.description
+            << ", ingredients=" << testing::PrintToString(ingredients) << ")";
         recipe.header.id = st.id;
         recipe_headers.emplace_back(recipe.header.name, st.id);
     }
-
-    if (auto st = CompareVectors("GetRecipes", db->GetRecipes(), recipe_headers); st) {
-        return st;
-    }
-
-    return std::nullopt;
+    EXPECT_THAT(db->GetRecipes(), testing::UnorderedPointwise(EqAsStrings(), recipe_headers));
 }
 
-std::optional<std::string> TestDeleteRecipe() {
+TEST(DB, DeleteRecipe) {
     auto db = DB::Create(":memory:");
 
     std::vector<Ingredient> products = {
@@ -279,9 +177,7 @@ std::optional<std::string> TestDeleteRecipe() {
         {"egg", 156},
         {"salt", 0},
     };
-    if (auto st = AddProducts(db.get(), &products); st) {
-        return st;
-    }
+    AddProducts(db.get(), &products);
 
     std::vector<FullRecipe> recipes = {
         {{"pancake"},
@@ -312,50 +208,22 @@ std::optional<std::string> TestDeleteRecipe() {
             ingredients[ing.ingredient_id] = ing.weight;
         }
         auto st = db->CreateRecipe(recipe.header.name, recipe.description, ingredients);
-        if (st.code != DB::Result::OK) {
-            std::stringstream err;
-            err << "CreateRecipe(" << recipe.header.name << ", " << recipe.description << ", "
-                << ToString(recipe.ingredients) << ") = " << st.code << ". Want " << DB::Result::OK;
-            return err.str();
-        }
+        EXPECT_EQ(st.code, DB::Result::OK)
+            << "CreateRecipe(name=" << recipe.header.name << ", description=" << recipe.description
+            << ", ingredients=" << testing::PrintToString(ingredients) << ")";
         recipe_headers.emplace_back(recipe.header.name, st.id);
     }
 
-    if (auto st = CompareVectors("GetRecipes", db->GetRecipes(), recipe_headers); st) {
-        return st;
-    }
+    EXPECT_THAT(db->GetRecipes(), testing::UnorderedPointwise(EqAsStrings(), recipe_headers));
 
     while (!recipe_headers.empty()) {
         size_t last_id = recipe_headers.back().id;
         recipe_headers.pop_back();
 
-        if (!db->DeleteRecipe(last_id)) {
-            std::stringstream err;
-            err << "DeleteRecipe(" << last_id << ")=false. Want true.";
-            return err.str();
-        }
-
-        if (auto st = CompareVectors("GetRecipes", db->GetRecipes(), recipe_headers); st) {
-            return st;
-        }
+        EXPECT_TRUE(db->DeleteRecipe(last_id)) << last_id;
+        EXPECT_THAT(db->GetRecipes(), testing::UnorderedPointwise(EqAsStrings(), recipe_headers));
     }
-
-    return std::nullopt;
 }
 
+}  // namespace
 }  // namespace foodculator
-
-TEST(Legacy, AllOldTests) {
-    using namespace foodculator;
-    std::map<std::string_view, std::function<std::optional<std::string>()>> tests = {
-        {"TestEmptyDatabase", TestEmptyDatabase},     {"TestAddProduct", TestAddProduct},
-        {"TestDeleteProduct", TestDeleteProduct},     {"TestAddTableware", TestAddTableware},
-        {"TestDeleteTableware", TestDeleteTableware}, {"TestCreateRecipe", TestCreateRecipe},
-        {"TestDeleteRecipe", TestDeleteRecipe},
-    };
-
-    for (const auto& [name, fn] : tests) {
-        auto res = fn();
-        EXPECT_FALSE(res) << name << ": " << res.value();
-    }
-}
