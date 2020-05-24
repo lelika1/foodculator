@@ -3,6 +3,7 @@
 #include <sqlite3.h>
 
 #include <iostream>
+#include <optional>
 #include <sstream>
 #include <string_view>
 
@@ -231,25 +232,25 @@ std::vector<RecipeHeader> DB::GetRecipes() {
     return ret;
 }
 
-FullRecipe DB::GetRecipeInfo(size_t recipe_id) {
-    FullRecipe recipe;
-    recipe.header.id = recipe_id;
+std::optional<FullRecipe> DB::GetRecipeInfo(size_t recipe_id) {
     const auto& desc = Exec("SELECT NAME, DESC FROM RECIPE WHERE ID=?1;", {{recipe_id}});
     if ((desc.status != SQLITE_OK) || (desc.rows.empty())) {
-        return recipe;
+        return std::nullopt;
     }
 
-    auto& header = desc.rows[0];
-    recipe.header.name = std::move(header.at(0));
-    recipe.description = std::move(header.at(1));
-
-    const auto& res =
+    const auto& ingredients =
         Exec("SELECT INGR_ID, WEIGHT FROM RECIPE_INGREDIENTS WHERE RECIPE_ID=?1;", {{recipe_id}});
-    if (res.status != SQLITE_OK) {
-        return recipe;
+    if (ingredients.status != SQLITE_OK) {
+        return std::nullopt;
     }
 
-    for (const auto& row : res.rows) {
+    auto& header_data = desc.rows[0];
+    FullRecipe recipe;
+    recipe.header.id = recipe_id;
+    recipe.header.name = std::move(header_data.at(0));
+    recipe.description = std::move(header_data.at(1));
+
+    for (const auto& row : ingredients.rows) {
         recipe.ingredients.emplace_back(std::stoull(row.at(0)), std::stoul(row.at(1)));
     }
     return recipe;

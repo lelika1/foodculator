@@ -103,7 +103,7 @@ class DB {
     Result CreateRecipe(const std::string& name, const std::string& description,
                         const std::map<size_t, uint32_t>& ingredients);
     std::vector<RecipeHeader> GetRecipes();
-    FullRecipe GetRecipeInfo(size_t recipe_id);
+    std::optional<FullRecipe> GetRecipeInfo(size_t recipe_id);
     bool DeleteRecipe(size_t id);
 
    private:
