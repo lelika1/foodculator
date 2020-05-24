@@ -183,7 +183,6 @@ std::vector<Tableware> DB::GetTableware() {
 }
 
 bool DB::DeleteProduct(size_t id) {
-    // TODO return an error if there are recipes with this ingredient
     const auto& st = Exec("DELETE from INGREDIENTS where ID = ?1;", {{id}});
     return st.status == SQLITE_OK;
 }
