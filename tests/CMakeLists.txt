@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
-add_executable(tests main.cpp db.cpp)
+add_executable(tests db.cpp)
 
 set_target_properties(tests
 	PROPERTIES
@@ -10,4 +10,4 @@ set_target_properties(tests
 )
 
 target_include_directories(tests PRIVATE "${PROJECT_SOURCE_DIR}")
-target_link_libraries(tests DbLib gtest gmock)
+target_link_libraries(tests DbLib gtest gmock gtest_main)
