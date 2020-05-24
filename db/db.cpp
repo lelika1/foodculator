@@ -24,6 +24,7 @@ std::unique_ptr<DB> DB::Create(std::string_view path) {
 
     const char sql[] =
         R"*(
+        PRAGMA foreign_keys = ON;
         CREATE TABLE IF NOT EXISTS INGREDIENTS(
             ID              INTEGER   PRIMARY KEY   AUTOINCREMENT NOT NULL,
             NAME            TEXT                                  NOT NULL,
@@ -156,7 +157,7 @@ DB::Result DB::SelectId(std::string_view table, const std::vector<std::string_vi
 
 std::vector<Ingredient> DB::GetProducts() {
     std::vector<Ingredient> ret;
-    const auto& res = Exec("SELECT NAME, KCAL, ID from INGREDIENTS", {});
+    const auto& res = Exec("SELECT NAME, KCAL, ID from INGREDIENTS;", {});
     for (auto& row : res.rows) {
         ret.emplace_back(std::move(row.at(0)), std::stoul(row.at(1)), std::stoull(row.at(2)));
     }
@@ -165,7 +166,7 @@ std::vector<Ingredient> DB::GetProducts() {
 
 std::vector<Tableware> DB::GetTableware() {
     std::vector<Tableware> ret;
-    const auto& res = Exec("SELECT NAME, WEIGHT, ID from TABLEWARE", {});
+    const auto& res = Exec("SELECT NAME, WEIGHT, ID from TABLEWARE;", {});
     for (auto& row : res.rows) {
         ret.emplace_back(std::move(row.at(0)), std::stoul(row.at(1)), std::stoull(row.at(2)));
     }
@@ -255,7 +256,7 @@ FullRecipe DB::GetRecipeInfo(size_t recipe_id) {
 }
 
 bool DB::DeleteRecipe(size_t id) {
-    const auto& st = Exec("DELETE FROM RECIPE WHERE ID=?1", {{id}});
+    const auto& st = Exec("DELETE FROM RECIPE WHERE ID=?1;", {{id}});
     return st.status == SQLITE_OK;
 }
 
