@@ -75,8 +75,12 @@ DB::Result DB::AddProduct(std::string name, uint32_t kcal) {
     if (auto st = Insert("INGREDIENTS", {"NAME", "KCAL"}, params); st != Result::OK) {
         return {.code = st};
     }
-    // TODO remove the product from DB if SelectId returns error
-    return SelectId("INGREDIENTS", {"NAME", "KCAL"}, params, "ID");
+
+    auto st = SelectId("INGREDIENTS", {"NAME", "KCAL"}, params, "ID");
+    if (st.code != Result::OK) {
+        Exec("DELETE FROM INGREDIENTS WHERE NAME=?1 AND KCAL=?2;", params);
+    }
+    return st;
 }
 
 DB::Result DB::AddTableware(std::string name, uint32_t weight) {
@@ -84,8 +88,12 @@ DB::Result DB::AddTableware(std::string name, uint32_t weight) {
     if (auto st = Insert("TABLEWARE", {"NAME", "WEIGHT"}, params); st != Result::OK) {
         return {.code = st};
     }
-    // TODO remove the tableware from DB if SelectId returns error
-    return SelectId("TABLEWARE", {"NAME", "WEIGHT"}, params, "ID");
+
+    auto st = SelectId("TABLEWARE", {"NAME", "WEIGHT"}, params, "ID");
+    if (st.code != Result::OK) {
+        Exec("DELETE FROM TABLEWARE WHERE NAME=?1 AND WEIGHT=?2;", params);
+    }
+    return st;
 }
 
 DB::Result::Code DB::Insert(std::string_view table, const std::vector<std::string_view>& fields,
@@ -198,7 +206,7 @@ DB::Result DB::CreateRecipe(const std::string& name, const std::string& descript
 
     Result st = SelectId("RECIPE", {"NAME", "DESC"}, {{name}, {description}}, "ID");
     if (st.code != Result::OK) {
-        // TODO remove the recipe from DB?
+        Exec("DELETE FROM RECIPE WHERE NAME=?1;", {{name}});
         return st;
     }
 
@@ -217,7 +225,8 @@ DB::Result DB::CreateRecipe(const std::string& name, const std::string& descript
 
     if (auto code = Insert("RECIPE_INGREDIENTS", {"RECIPE_ID", "INGR_ID", "WEIGHT"}, params);
         code != Result::OK) {
-        // TODO check an error and remove the recipe from DB add new code
+        Exec("DELETE FROM RECIPE_INGREDIENTS WHERE RECIPE_ID=?1;", {{recipe_id}});
+        Exec("DELETE FROM RECIPE WHERE ID=?1;", {{recipe_id}});
         return {.code = code};
     }
 
