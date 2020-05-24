@@ -122,7 +122,7 @@ DB::Result::Code DB::Insert(std::string_view table, const std::vector<std::strin
         case SQLITE_OK:
             return Result::OK;
         case SQLITE_CONSTRAINT:
-            return Result::DUPLICATE;
+            return Result::INVALID_ARGUMENT;
         default:
             return Result::ERROR;
     }
@@ -179,15 +179,14 @@ bool DB::DeleteProduct(size_t id) {
 }
 
 bool DB::DeleteTableware(size_t id) {
-    const auto& st = Exec("DELETE FROM TABLEWARE WHERE ID = ?1", {{id}});
+    const auto& st = Exec("DELETE FROM TABLEWARE WHERE ID = ?1;", {{id}});
     return st.status == SQLITE_OK;
 }
 
 DB::Result DB::CreateRecipe(const std::string& name, const std::string& description,
                             const std::map<size_t, uint32_t>& ingredients) {
-    if (ingredients.empty() || name.empty()) {
-        // TODO add new status
-        return {.code = Result::ERROR};
+    if (name.empty()) {
+        return {.code = Result::INVALID_ARGUMENT};
     }
 
     if (auto code = Insert("RECIPE", {"NAME", "DESC"}, {{name}, {description}});

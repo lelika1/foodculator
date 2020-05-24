@@ -84,7 +84,7 @@ struct FullRecipe {
 class DB {
    public:
     struct Result {
-        enum Code { OK = 0, DUPLICATE, ERROR };
+        enum Code { OK = 0, INVALID_ARGUMENT, ERROR };
         Code code = OK;
         size_t id;
     };

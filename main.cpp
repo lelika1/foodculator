@@ -122,7 +122,7 @@ int main(int argc, char** argv) {
                 res.set_content(std::to_string(result.id), "text/plain");
                 return;
             }
-            case DB::Result::DUPLICATE: {
+            case DB::Result::INVALID_ARGUMENT: {
                 res.set_content("This ingredient already exists in the database.", "text/plain");
                 res.status = 500;
                 return;
@@ -175,7 +175,7 @@ int main(int argc, char** argv) {
                 res.set_content(std::to_string(result.id), "text/plain");
                 return;
             }
-            case DB::Result::DUPLICATE: {
+            case DB::Result::INVALID_ARGUMENT: {
                 res.set_content("This pot already exists in the database.", "text/plain");
                 res.status = 500;
                 return;

@@ -60,7 +60,7 @@ TEST(DB, AddProduct) {
     AddProducts(db.get(), &products);
 
     const auto& dupl = products[0];
-    ASSERT_EQ(db->AddProduct(dupl.name, dupl.kcal).code, DB::Result::DUPLICATE)
+    ASSERT_EQ(db->AddProduct(dupl.name, dupl.kcal).code, DB::Result::INVALID_ARGUMENT)
         << "name=" << dupl.name << " kcal=" << dupl.kcal;
     EXPECT_THAT(db->GetProducts(), testing::UnorderedPointwise(EqAsStrings(), products));
 }
@@ -98,7 +98,7 @@ TEST(DB, AddTableware) {
 
     const auto& dupl = tableware[0];
 
-    ASSERT_EQ(db->AddTableware(dupl.name, dupl.weight).code, DB::Result::DUPLICATE)
+    ASSERT_EQ(db->AddTableware(dupl.name, dupl.weight).code, DB::Result::INVALID_ARGUMENT)
         << "name=" << dupl.name << " weight=" << dupl.weight;
     EXPECT_THAT(db->GetTableware(), testing::UnorderedPointwise(EqAsStrings(), tableware));
 }
