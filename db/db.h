@@ -20,12 +20,15 @@ struct Ingredient {
     Ingredient(std::string name, uint32_t kcal, size_t id = 0)
         : name(std::move(name)), kcal(kcal), id(id) {}
 
-    friend void PrintTo(const Ingredient& v, std::ostream* os) { *os << v.to_json().dump(); }
+    bool operator==(const Ingredient& rhs) const;
+
     json11::Json to_json() const {
         return json11::Json::object{
             {"name", name}, {"kcal", std::to_string(kcal)}, {"id", std::to_string(id)}};
     }
 };
+
+std::ostream& operator<<(std::ostream& out, const Ingredient& v);
 
 struct Tableware {
     std::string name;
@@ -35,12 +38,15 @@ struct Tableware {
     Tableware(std::string name, uint32_t weight, size_t id = 0)
         : name(std::move(name)), weight(weight), id(id) {}
 
-    friend void PrintTo(const Tableware& v, std::ostream* os) { *os << v.to_json().dump(); }
+    bool operator==(const Tableware& rhs) const;
+
     json11::Json to_json() const {
         return json11::Json::object{
             {"name", name}, {"weight", std::to_string(weight)}, {"id", std::to_string(id)}};
     }
 };
+
+std::ostream& operator<<(std::ostream& out, const Tableware& v);
 
 struct RecipeIngredient {
     size_t ingredient_id;
@@ -48,12 +54,15 @@ struct RecipeIngredient {
 
     RecipeIngredient(size_t id, uint32_t weight) : ingredient_id(id), weight(weight) {}
 
-    friend void PrintTo(const RecipeIngredient& v, std::ostream* os) { *os << v.to_json().dump(); }
+    bool operator==(const RecipeIngredient& rhs) const;
+
     json11::Json to_json() const {
         return json11::Json::object{{"id", std::to_string(ingredient_id)},
                                     {"weight", std::to_string(weight)}};
     }
 };
+
+std::ostream& operator<<(std::ostream& out, const RecipeIngredient& v);
 
 struct RecipeHeader {
     std::string name;
@@ -62,24 +71,30 @@ struct RecipeHeader {
     RecipeHeader() {}
     RecipeHeader(std::string name, size_t id = 0) : name(std::move(name)), id(id) {}
 
-    friend void PrintTo(const RecipeHeader& v, std::ostream* os) { *os << v.to_json().dump(); }
+    bool operator==(const RecipeHeader& rhs) const;
+
     json11::Json to_json() const {
         return json11::Json::object{{"name", name}, {"id", std::to_string(id)}};
     }
 };
+
+std::ostream& operator<<(std::ostream& out, const RecipeHeader& v);
 
 struct FullRecipe {
     RecipeHeader header;
     std::string description;
     std::vector<RecipeIngredient> ingredients;
 
-    friend void PrintTo(const FullRecipe& v, std::ostream* os) { *os << v.to_json().dump(); }
+    bool operator==(const FullRecipe& rhs) const;
+
     json11::Json to_json() const {
         return json11::Json::object{{"header", header.to_json()},
                                     {"description", description},
                                     {"ingredients", ingredients}};
     }
 };
+
+std::ostream& operator<<(std::ostream& out, const FullRecipe& v);
 
 class DB {
    public:

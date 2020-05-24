@@ -1,6 +1,6 @@
 #include "db/db.h"
 
-#include <bits/stdint-uintn.h>
+#include <gmock/gmock-matchers.h>
 
 #include <iostream>
 #include <map>
@@ -12,10 +12,6 @@
 
 namespace foodculator {
 namespace {
-
-MATCHER(EqAsStrings, "") {
-    return testing::PrintToString(std::get<0>(arg)) == testing::PrintToString(std::get<1>(arg));
-}
 
 TEST(DB, EmptyDatabase) {
     auto db = DB::Create(":memory:");
@@ -49,14 +45,14 @@ TEST(DB, AddDeleteProduct) {
     const auto& dup = want[0];
     ASSERT_EQ(db->AddProduct(dup.name, dup.kcal).code, DB::Result::INVALID_ARGUMENT)
         << "duplicate insertion should fail";
-    ASSERT_THAT(db->GetProducts(), testing::UnorderedPointwise(EqAsStrings(), want));
+    ASSERT_THAT(db->GetProducts(), testing::UnorderedElementsAreArray(want));
 
     while (!want.empty()) {
         size_t last_id = want.back().id;
         want.pop_back();
 
         ASSERT_TRUE(db->DeleteProduct(last_id)) << last_id;
-        ASSERT_THAT(db->GetProducts(), testing::UnorderedPointwise(EqAsStrings(), want));
+        ASSERT_THAT(db->GetProducts(), testing::UnorderedElementsAreArray(want));
     }
 }
 
@@ -87,14 +83,14 @@ TEST(DB, AddDeleteTableware) {
     const auto& dup = want[0];
     ASSERT_EQ(db->AddTableware(dup.name, dup.weight).code, DB::Result::INVALID_ARGUMENT)
         << "duplicate insertion should fail";
-    ASSERT_THAT(db->GetTableware(), testing::UnorderedPointwise(EqAsStrings(), want));
+    ASSERT_THAT(db->GetTableware(), testing::UnorderedElementsAreArray(want));
 
     while (!want.empty()) {
         size_t last_id = want.back().id;
         want.pop_back();
 
         ASSERT_TRUE(db->DeleteTableware(last_id)) << last_id;
-        ASSERT_THAT(db->GetTableware(), testing::UnorderedPointwise(EqAsStrings(), want));
+        ASSERT_THAT(db->GetTableware(), testing::UnorderedElementsAreArray(want));
     }
 }
 
@@ -113,9 +109,8 @@ TEST(DB, GetRecipeInfo) {
     EXPECT_EQ(got->header.name, "pancake");
     EXPECT_EQ(got->header.id, pancake_id);
     EXPECT_EQ(got->description, "do it");
-    EXPECT_THAT(got->ingredients,
-                testing::UnorderedPointwise(EqAsStrings(), {RecipeIngredient(milk_id, 500),
-                                                            RecipeIngredient(flour_id, 200)}))
+    EXPECT_THAT(got->ingredients, testing::UnorderedElementsAre(RecipeIngredient(milk_id, 500),
+                                                                RecipeIngredient(flour_id, 200)))
         << "all non-zero weight ingredients should be present";
 }
 
@@ -167,14 +162,14 @@ TEST(DB, CreateDeleteRecipe) {
         recipe_headers.emplace_back(name, id);
     }
 
-    EXPECT_THAT(db->GetRecipes(), testing::UnorderedPointwise(EqAsStrings(), recipe_headers));
+    EXPECT_THAT(db->GetRecipes(), testing::UnorderedElementsAreArray(recipe_headers));
 
     while (!recipe_headers.empty()) {
         size_t last_id = recipe_headers.back().id;
         recipe_headers.pop_back();
 
         EXPECT_TRUE(db->DeleteRecipe(last_id)) << last_id;
-        EXPECT_THAT(db->GetRecipes(), testing::UnorderedPointwise(EqAsStrings(), recipe_headers));
+        EXPECT_THAT(db->GetRecipes(), testing::UnorderedElementsAreArray(recipe_headers));
     }
 }
 

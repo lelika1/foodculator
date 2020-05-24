@@ -312,4 +312,44 @@ DB::ExecResult DB::Exec(std::string_view sql, const std::vector<BindParameter>& 
     return {.status = st};
 }
 
+std::ostream& operator<<(std::ostream& out, const Ingredient& v) {
+    return out << v.to_json().dump();
+}
+
+std::ostream& operator<<(std::ostream& out, const Tableware& v) {
+    return out << v.to_json().dump();
+}
+
+std::ostream& operator<<(std::ostream& out, const RecipeIngredient& v) {
+    return out << v.to_json().dump();
+}
+
+std::ostream& operator<<(std::ostream& out, const RecipeHeader& v) {
+    return out << v.to_json().dump();
+}
+
+std::ostream& operator<<(std::ostream& out, const FullRecipe& v) {
+    return out << v.to_json().dump();
+}
+
+bool Ingredient::operator==(const Ingredient& rhs) const {
+    return name == rhs.name && kcal == rhs.kcal && id == rhs.id;
+}
+
+bool Tableware::operator==(const Tableware& rhs) const {
+    return name == rhs.name && weight == rhs.weight && id == rhs.id;
+}
+
+bool RecipeIngredient::operator==(const RecipeIngredient& rhs) const {
+    return ingredient_id == rhs.ingredient_id && weight == rhs.weight;
+}
+
+bool RecipeHeader::operator==(const RecipeHeader& rhs) const {
+    return name == rhs.name && id == rhs.id;
+}
+
+bool FullRecipe::operator==(const FullRecipe& rhs) const {
+    return header == rhs.header && description == rhs.description && ingredients == rhs.ingredients;
+}
+
 }  // namespace foodculator
