@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 3.0)
 
 add_executable(tests main.cpp db.cpp)
-add_test(NAME tests COMMAND tests)
 
 set_target_properties(tests
 	PROPERTIES
