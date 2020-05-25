@@ -165,6 +165,7 @@ DB::Result DB::SelectId(std::string_view table, const std::vector<std::string_vi
 }
 
 std::vector<Ingredient> DB::GetProducts() {
+    // TODO: Return an error from Exec if it failed.
     std::vector<Ingredient> ret;
     const auto& res = Exec("SELECT NAME, KCAL, ID from INGREDIENTS;", {});
     for (auto& row : res.rows) {
@@ -174,6 +175,7 @@ std::vector<Ingredient> DB::GetProducts() {
 }
 
 std::vector<Tableware> DB::GetTableware() {
+    // TODO: Return an error from Exec if it failed.
     std::vector<Tableware> ret;
     const auto& res = Exec("SELECT NAME, WEIGHT, ID from TABLEWARE;", {});
     for (auto& row : res.rows) {
@@ -233,6 +235,7 @@ DB::Result DB::CreateRecipe(const std::string& name, const std::string& descript
 }
 
 std::vector<RecipeHeader> DB::GetRecipes() {
+    // TODO: Handle Exec failure.
     std::vector<RecipeHeader> ret;
     for (auto& row : Exec("SELECT NAME, ID FROM RECIPE;", {}).rows) {
         ret.emplace_back(std::move(row.at(0)), std::stoull(row.at(1)));

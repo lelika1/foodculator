@@ -116,10 +116,10 @@ int main(int argc, char** argv) {
         }
 
         uint32_t kcal = js["kcal"].int_value();
-        auto result = db->AddProduct(std::move(name), kcal);
-        switch (result.code) {
+        auto [code, id] = db->AddProduct(std::move(name), kcal);
+        switch (code) {
             case DB::Result::OK: {
-                res.set_content(std::to_string(result.id), "text/plain");
+                res.set_content(std::to_string(id), "text/plain");
                 return;
             }
             case DB::Result::INVALID_ARGUMENT: {
@@ -135,9 +135,12 @@ int main(int argc, char** argv) {
         }
     });
 
+    srv.Get(R"(/ingredient/(\d+))", [&db](const httplib::Request& req, httplib::Response& res) {
+        // TODO:: implement
+    });
+
     srv.Delete(R"(/ingredient/(\d+))", [&db](const httplib::Request& req, httplib::Response& res) {
-        size_t id = std::stoull(req.matches[1].str());
-        if (!db->DeleteProduct(id)) {
+        if (size_t id = std::stoull(req.matches[1].str()); !db->DeleteProduct(id)) {
             res.set_content("An ingredient wasn't deleted. Some SQL error occured.", "text/plain");
             res.status = 500;
         }
@@ -169,10 +172,10 @@ int main(int argc, char** argv) {
         }
 
         uint32_t weight = js["weight"].int_value();
-        auto result = db->AddTableware(std::move(name), weight);
-        switch (result.code) {
+        auto [code, id] = db->AddTableware(std::move(name), weight);
+        switch (code) {
             case DB::Result::OK: {
-                res.set_content(std::to_string(result.id), "text/plain");
+                res.set_content(std::to_string(id), "text/plain");
                 return;
             }
             case DB::Result::INVALID_ARGUMENT: {
@@ -188,10 +191,80 @@ int main(int argc, char** argv) {
     });
 
     srv.Delete(R"(/tableware/(\d+))", [&db](const httplib::Request& req, httplib::Response& res) {
-        size_t id = std::stoull(req.matches[1].str());
-        if (!db->DeleteTableware(id)) {
+        if (size_t id = std::stoull(req.matches[1].str()); !db->DeleteTableware(id)) {
             res.set_content("A pot wasn't deleted. Some SQL error occured.", "text/plain");
             res.status = 500;
+        }
+    });
+
+    srv.Get("/get_recipes", [&db](const httplib::Request& req, httplib::Response& res) {
+        res.set_content(json11::Json(db->GetRecipes()).dump(), "text/json");
+    });
+
+    srv.Post("/create_recipe", [&db](const httplib::Request& req, httplib::Response& res) {
+        std::string err;
+        json11::Json input = json11::Json::parse(req.body, err);
+        if (!err.empty()) {
+            res.set_content("Failed to parse the request: " + err, "text/plain");
+            res.status = 400;
+            return;
+        }
+
+        std::string name = input["header"]["name"].string_value();
+        if (name.empty()) {
+            res.set_content("Recipe name should not be empty.", "text/plain");
+            res.status = 400;
+            return;
+        }
+
+        std::map<size_t, uint32_t> ingredients;
+        for (const auto& v : input["ingredients"].array_items()) {
+            if (!v.has_shape({{"id", json11::Json::NUMBER}, {"weight", json11::Json::NUMBER}},
+                             err)) {
+                res.set_content("Each ingredient should have id and weight number fields.",
+                                "text/plain");
+                res.status = 400;
+                return;
+            }
+            double id = v["id"].number_value();
+            double weight = v["weight"].number_value();
+            if (id < 0.0 || weight < 0.0) {
+                res.set_content("id and weight must be >= 0.", "text/plain");
+                res.status = 400;
+                return;
+            }
+            ingredients[static_cast<size_t>(id)] = static_cast<uint32_t>(weight);
+        }
+
+        std::string description = input["description"].string_value();
+        auto [code, id] = db->CreateRecipe(name, description, ingredients);
+        switch (code) {
+            case DB::Result::OK: {
+                res.set_content(std::to_string(id), "text/plain");
+                return;
+            }
+            default: {
+                res.set_content("DB request failed. Try again later.", "text/plain");
+                res.status = 500;
+            }
+        }
+    });
+
+    srv.Get(R"(/recipe/(\d+))", [&db](const httplib::Request& req, httplib::Response& res) {
+        auto recipe = db->GetRecipeInfo(std::stoull(req.matches[1].str()));
+        if (!recipe) {
+            res.set_content("The recipe wasn't found.", "text/plain");
+            res.status = 404;
+            return;
+        }
+        res.set_content(json11::Json(recipe.value()).dump(), "text/json");
+    });
+
+    srv.Delete(R"(/recipe/(\d+))", [&db](const httplib::Request& req, httplib::Response& res) {
+        if (size_t id = std::stoull(req.matches[1].str()); !db->DeleteRecipe(id)) {
+            res.set_content("DB request failed. Try again later.", "text/plain");
+            res.status = 500;
+            return;
         }
     });
 
@@ -254,8 +327,13 @@ int main(int argc, char** argv) {
     std::signal(SIGTERM, signal_handler);
 
     srv.set_logger([](const httplib::Request& req, const httplib::Response& res) {
-        std::cout << req.method << " " << req.path << ":\tcode=" << res.status
-                  << " size=" << res.body.length() << "b" << std::endl;
+        if (res.status == 200) {
+            std::cout << req.method << " " << req.path << ":\tcode=" << res.status
+                      << " size=" << res.body.length() << "b" << std::endl;
+        } else {
+            std::cerr << req.method << " " << req.path << ":\tcode=" << res.status
+                      << " content=" << res.body << std::endl;
+        }
     });
     srv.listen("0.0.0.0", port);
 
