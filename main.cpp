@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
 
     auto db = DB::Create(argv[2]);
     if (!db) {
-        std::cerr << "A problem with " << argv[2] << " occured." << std::endl;
+        std::cerr << "DB::Create(" << argv[2] << ") failed." << std::endl;
         return 1;
     }
 
@@ -95,28 +95,29 @@ int main(int argc, char** argv) {
 
     srv.Post("/add_ingredient", [&db](const httplib::Request& req, httplib::Response& res) {
         std::string err;
-        json11::Json js = json11::Json::parse(req.body, err);
+        json11::Json input = json11::Json::parse(req.body, err);
+        if (!err.empty()) {
+            res.set_content("Failed to parse the request: " + err, "text/plain");
+            res.status = 400;
+            return;
+        }
 
-        std::string name = js["product"].string_value();
-
-        if (!err.empty() || name.empty() || !js.has_shape({{"kcal", json11::Json::NUMBER}}, err)) {
-            std::cerr << "Error: " << err << std::endl;
-
-            res.set_content("An ingredient wasn't added. Some information is missing.",
+        std::string name = input["product"].string_value();
+        if (name.empty() || !input.has_shape({{"kcal", json11::Json::NUMBER}}, err)) {
+            res.set_content("Ingredient should have `product` (string) and `kcal` (number) fields.",
                             "text/plain");
             res.status = 400;
             return;
         }
 
-        if (js["kcal"].int_value() < 0) {
-            res.set_content("An ingredient wasn't added. The energy couldn't be negative.",
-                            "text/plain");
+        double kcal = input["kcal"].number_value();
+        if (kcal < 0.0) {
+            res.set_content("Ingredient cannot have negative `kcal` value.", "text/plain");
             res.status = 400;
             return;
         }
 
-        uint32_t kcal = js["kcal"].int_value();
-        auto [code, id] = db->AddProduct(std::move(name), kcal);
+        auto [code, id] = db->AddProduct(std::move(name), static_cast<uint32_t>(kcal));
         switch (code) {
             case DB::Result::OK: {
                 res.set_content(std::to_string(id), "text/plain");
@@ -128,8 +129,7 @@ int main(int argc, char** argv) {
                 return;
             }
             default: {
-                res.set_content("An ingredient wasn't added. Some SQL error occured.",
-                                "text/plain");
+                res.set_content("DB request failed. Try again later.", "text/plain");
                 res.status = 500;
             }
         }
@@ -141,7 +141,7 @@ int main(int argc, char** argv) {
 
     srv.Delete(R"(/ingredient/(\d+))", [&db](const httplib::Request& req, httplib::Response& res) {
         if (size_t id = std::stoull(req.matches[1].str()); !db->DeleteProduct(id)) {
-            res.set_content("An ingredient wasn't deleted. Some SQL error occured.", "text/plain");
+            res.set_content("DB request failed. Try again later.", "text/plain");
             res.status = 500;
         }
     });
@@ -152,27 +152,28 @@ int main(int argc, char** argv) {
 
     srv.Post("/add_tableware", [&db](const httplib::Request& req, httplib::Response& res) {
         std::string err;
-        json11::Json js = json11::Json::parse(req.body, err);
-
-        std::string name = js["name"].string_value();
-
-        if (!err.empty() || name.empty() ||
-            !js.has_shape({{"weight", json11::Json::NUMBER}}, err)) {
-            std::cerr << "Error: " << err << std::endl;
-
-            res.set_content("A pot wasn't added. Some information is missing.", "text/plain");
+        json11::Json input = json11::Json::parse(req.body, err);
+        if (!err.empty()) {
+            res.set_content("Failed to parse the request: " + err, "text/plain");
             res.status = 400;
             return;
         }
 
-        if (js["weight"].int_value() < 0) {
-            res.set_content("A pot wasn't added. The weight couldn't be negative.", "text/plain");
+        std::string name = input["name"].string_value();
+        if (name.empty() || !input.has_shape({{"weight", json11::Json::NUMBER}}, err)) {
+            res.set_content("Ingredient should have `name` (string) and `weight` (number) fields.",
+                            "text/plain");
+            res.status = 400;
+            return;
+        }
+        double weight = input["weight"].number_value();
+        if (weight < 0.0) {
+            res.set_content("The weight couldn't be negative.", "text/plain");
             res.status = 400;
             return;
         }
 
-        uint32_t weight = js["weight"].int_value();
-        auto [code, id] = db->AddTableware(std::move(name), weight);
+        auto [code, id] = db->AddTableware(std::move(name), static_cast<uint32_t>(weight));
         switch (code) {
             case DB::Result::OK: {
                 res.set_content(std::to_string(id), "text/plain");
@@ -184,7 +185,7 @@ int main(int argc, char** argv) {
                 return;
             }
             default: {
-                res.set_content("A pot wasn't added. Some SQL error occured.", "text/plain");
+                res.set_content("DB request failed. Try again later.", "text/plain");
                 res.status = 500;
             }
         }
@@ -226,6 +227,7 @@ int main(int argc, char** argv) {
                 res.status = 400;
                 return;
             }
+
             double id = v["id"].number_value();
             double weight = v["weight"].number_value();
             if (id < 0.0 || weight < 0.0) {
@@ -233,21 +235,19 @@ int main(int argc, char** argv) {
                 res.status = 400;
                 return;
             }
+
             ingredients[static_cast<size_t>(id)] = static_cast<uint32_t>(weight);
         }
 
         std::string description = input["description"].string_value();
         auto [code, id] = db->CreateRecipe(name, description, ingredients);
-        switch (code) {
-            case DB::Result::OK: {
-                res.set_content(std::to_string(id), "text/plain");
-                return;
-            }
-            default: {
-                res.set_content("DB request failed. Try again later.", "text/plain");
-                res.status = 500;
-            }
+        if (code != DB::Result::OK) {
+            res.set_content("DB request failed. Try again later.", "text/plain");
+            res.status = 500;
+            return;
         }
+
+        res.set_content(std::to_string(id), "text/plain");
     });
 
     srv.Get(R"(/recipe/(\d+))", [&db](const httplib::Request& req, httplib::Response& res) {
@@ -257,6 +257,7 @@ int main(int argc, char** argv) {
             res.status = 404;
             return;
         }
+
         res.set_content(json11::Json(recipe.value()).dump(), "text/json");
     });
 
@@ -327,13 +328,14 @@ int main(int argc, char** argv) {
     std::signal(SIGTERM, signal_handler);
 
     srv.set_logger([](const httplib::Request& req, const httplib::Response& res) {
-        if (res.status == 200) {
-            std::cout << req.method << " " << req.path << ":\tcode=" << res.status
-                      << " size=" << res.body.length() << "b" << std::endl;
-        } else {
+        if (res.status != 200) {
             std::cerr << req.method << " " << req.path << ":\tcode=" << res.status
                       << " content=" << res.body << std::endl;
+            return;
         }
+
+        std::cout << req.method << " " << req.path << ":\tsize=" << res.body.length() << "b"
+                  << std::endl;
     });
     srv.listen("0.0.0.0", port);
 
