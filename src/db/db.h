@@ -1,5 +1,6 @@
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -7,6 +8,7 @@
 #include <vector>
 
 #include "json11/json11.hpp"
+#include "util/statusor.h"
 
 class sqlite3;
 
@@ -98,47 +100,36 @@ std::ostream& operator<<(std::ostream& out, const FullRecipe& v);
 
 class DB {
    public:
-    struct Result {
-        enum Code { OK = 0, INVALID_ARGUMENT, ERROR };
-        Code code = OK;
-        size_t id;
-    };
-
     static std::unique_ptr<DB> Create(std::string_view path);
     ~DB();
 
-    Result AddProduct(std::string name, uint32_t kcal);
-    std::vector<Ingredient> GetProducts();
+    StatusOr<size_t> AddProduct(std::string name, uint32_t kcal);
+    StatusOr<Ingredient> GetProduct(size_t id);
+    StatusOr<std::vector<Ingredient>> GetProducts();
     bool DeleteProduct(size_t id);
 
-    Result AddTableware(std::string name, uint32_t weight);
-    std::vector<Tableware> GetTableware();
+    StatusOr<size_t> AddTableware(std::string name, uint32_t weight);
+    StatusOr<std::vector<Tableware>> GetTableware();
     bool DeleteTableware(size_t id);
 
-    Result CreateRecipe(const std::string& name, const std::string& description,
-                        const std::map<size_t, uint32_t>& ingredients);
-    std::vector<RecipeHeader> GetRecipes();
-    std::optional<FullRecipe> GetRecipeInfo(size_t recipe_id);
+    StatusOr<size_t> CreateRecipe(const std::string& name, const std::string& description,
+                                  const std::map<size_t, uint32_t>& ingredients);
+    StatusOr<std::vector<RecipeHeader>> GetRecipes();
+    StatusOr<FullRecipe> GetRecipeInfo(size_t recipe_id);
     bool DeleteRecipe(size_t id);
 
    private:
-    using DBRow = std::vector<std::string>;
-    using BindParameter = std::variant<uint32_t, std::string>;
-
     explicit DB(sqlite3* db) : db_(db) {}
 
-    DB::Result::Code Insert(std::string_view table, const std::vector<std::string_view>& fields,
-                            const std::vector<BindParameter>& params);
+    using BindParameter = std::variant<uint32_t, std::string>;
+    StatusOr<void> Insert(std::string_view table, const std::vector<std::string_view>& fields,
+                          const std::vector<BindParameter>& params);
+    StatusOr<size_t> SelectId(std::string_view table, const std::vector<std::string_view>& fields,
+                              const std::vector<BindParameter>& params, std::string_view id_field);
 
-    DB::Result SelectId(std::string_view table, const std::vector<std::string_view>& fields,
-                        const std::vector<BindParameter>& params, std::string_view id_field);
-
-    struct ExecResult {
-        int status;
-        std::vector<DBRow> rows;
-    };
-
-    ExecResult Exec(std::string_view sql, const std::vector<BindParameter>& params);
+    using DBRow = std::vector<std::string>;
+    StatusOr<std::vector<DBRow>> Exec(std::string_view sql,
+                                      const std::vector<BindParameter>& params);
 
     std::mutex mu_;
     sqlite3* db_;

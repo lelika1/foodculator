@@ -2,9 +2,11 @@
 
 #include <gmock/gmock-matchers.h>
 
+#include <cstdint>
 #include <iostream>
 #include <map>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "gmock/gmock.h"
@@ -17,14 +19,32 @@ TEST(DB, EmptyDatabase) {
     auto db = DB::Create(":memory:");
 
     const size_t UNKNOWN_ID = 100;
-    EXPECT_THAT(db->GetProducts(), testing::IsEmpty());
-    EXPECT_THAT(db->GetTableware(), testing::IsEmpty());
+
+    auto products = std::move(db->GetProducts());
+    ASSERT_TRUE(products.Ok());
+    EXPECT_THAT(products.Value(), testing::IsEmpty());
+
+    auto product = std::move(db->GetProduct(UNKNOWN_ID));
+    ASSERT_FALSE(product.Ok());
+    EXPECT_EQ(product.Code(), StatusCode::NOT_FOUND);
+
     EXPECT_TRUE(db->DeleteProduct(UNKNOWN_ID));
+
+    auto tw = std::move(db->GetTableware());
+    ASSERT_TRUE(tw.Ok());
+    EXPECT_THAT(tw.Value(), testing::IsEmpty());
+
     EXPECT_TRUE(db->DeleteTableware(UNKNOWN_ID));
 
-    EXPECT_THAT(db->GetRecipes(), testing::IsEmpty());
+    auto recipes = std::move(db->GetRecipes());
+    ASSERT_TRUE(recipes.Ok());
+    EXPECT_THAT(recipes.Value(), testing::IsEmpty());
+
     EXPECT_TRUE(db->DeleteRecipe(UNKNOWN_ID));
-    EXPECT_FALSE(db->GetRecipeInfo(UNKNOWN_ID).has_value());
+
+    auto recipe = std::move(db->GetRecipeInfo(UNKNOWN_ID));
+    ASSERT_FALSE(recipe.Ok());
+    EXPECT_EQ(recipe.Code(), StatusCode::NOT_FOUND);
 }
 
 TEST(DB, AddDeleteProduct) {
@@ -37,33 +57,58 @@ TEST(DB, AddDeleteProduct) {
         {"avocado", 160},
     };
     for (auto& v : want) {
-        auto [code, id] = db->AddProduct(v.name, v.kcal);
-        ASSERT_EQ(code, DB::Result::OK) << "AddProduct(" << v.name << ", " << v.kcal << ")";
-        v.id = id;
+        auto st = std::move(db->AddProduct(v.name, v.kcal));
+        ASSERT_TRUE(st.Ok()) << "AddProduct(" << v.name << ", " << v.kcal << ")";
+        v.id = st.Value();
     }
 
     const auto& dup = want[0];
-    ASSERT_EQ(db->AddProduct(dup.name, dup.kcal).code, DB::Result::INVALID_ARGUMENT)
-        << "duplicate insertion should fail";
-    ASSERT_THAT(db->GetProducts(), testing::UnorderedElementsAreArray(want));
+    auto dup_st = std::move(db->AddProduct(dup.name, dup.kcal));
+    ASSERT_FALSE(dup_st.Ok()) << "duplicate insertion should fail";
+    ASSERT_EQ(dup_st.Code(), StatusCode::INVALID_ARGUMENT) << "duplicate insertion should fail";
+
+    auto all = std::move(db->GetProducts());
+    ASSERT_TRUE(all.Ok()) << "GetProducts()";
+    ASSERT_THAT(all.Value(), testing::UnorderedElementsAreArray(want));
 
     while (!want.empty()) {
         size_t last_id = want.back().id;
         want.pop_back();
 
         ASSERT_TRUE(db->DeleteProduct(last_id)) << last_id;
-        ASSERT_THAT(db->GetProducts(), testing::UnorderedElementsAreArray(want));
+
+        auto products = std::move(db->GetProducts());
+        ASSERT_TRUE(products.Ok()) << "GetProducts()";
+        ASSERT_THAT(products.Value(), testing::UnorderedElementsAreArray(want));
     }
+}
+
+TEST(DB, GetProduct) {
+    auto db = DB::Create(":memory:");
+
+    std::string name = "milk";
+    std::uint32_t kcal = 48;
+
+    auto st = std::move(db->AddProduct(name, kcal));
+    ASSERT_TRUE(st.Ok()) << "AddProduct(" << name << ", " << kcal << ")";
+
+    auto product = std::move(db->GetProduct(st.Value()));
+    ASSERT_TRUE(product.Ok()) << "GetProduct(" << st.Value() << ")";
+    EXPECT_EQ(product.Value().name, name);
+    EXPECT_EQ(product.Value().kcal, kcal);
+    EXPECT_EQ(product.Value().id, st.Value());
 }
 
 TEST(DB, DeleteProduct_WithRecipe) {
     auto db = DB::Create(":memory:");
 
-    auto milk_id = db->AddProduct("milk", 48).id;
-    auto flour_id = db->AddProduct("flour", 364).id;
-    auto pancake_id = db->CreateRecipe("pancake", "do it", {{milk_id, 500}, {flour_id, 200}}).id;
+    auto milk_id = db->AddProduct("milk", 48).Value();
+    auto flour_id = db->AddProduct("flour", 364).Value();
 
-    EXPECT_FALSE(db->DeleteProduct(milk_id));
+    auto pancake_id =
+        db->CreateRecipe("pancake", "do it", {{milk_id, 500}, {flour_id, 200}}).Value();
+
+    ASSERT_FALSE(db->DeleteProduct(milk_id));
 }
 
 TEST(DB, AddDeleteTableware) {
@@ -75,73 +120,86 @@ TEST(DB, AddDeleteTableware) {
         {"big-pot", 10},
     };
     for (auto& v : want) {
-        auto [code, id] = db->AddTableware(v.name, v.weight);
-        ASSERT_EQ(code, DB::Result::OK) << "AddTableware(" << v.name << ", " << v.weight << ")";
-        v.id = id;
+        auto st = std::move(db->AddTableware(v.name, v.weight));
+        ASSERT_TRUE(st.Ok()) << "AddTableware(" << v.name << ", " << v.weight << ")";
+        v.id = st.Value();
     }
 
     const auto& dup = want[0];
-    ASSERT_EQ(db->AddTableware(dup.name, dup.weight).code, DB::Result::INVALID_ARGUMENT)
-        << "duplicate insertion should fail";
-    ASSERT_THAT(db->GetTableware(), testing::UnorderedElementsAreArray(want));
+    auto dup_st = std::move(db->AddTableware(dup.name, dup.weight));
+    ASSERT_FALSE(dup_st.Ok()) << "duplicate insertion should fail";
+    ASSERT_EQ(dup_st.Code(), StatusCode::INVALID_ARGUMENT) << "duplicate insertion should fail ";
+
+    auto all = std::move(db->GetTableware());
+    ASSERT_TRUE(all.Ok()) << "GetTableware()";
+    ASSERT_THAT(all.Value(), testing::UnorderedElementsAreArray(want));
 
     while (!want.empty()) {
         size_t last_id = want.back().id;
         want.pop_back();
 
         ASSERT_TRUE(db->DeleteTableware(last_id)) << last_id;
-        ASSERT_THAT(db->GetTableware(), testing::UnorderedElementsAreArray(want));
+
+        auto tw = std::move(db->GetTableware());
+        ASSERT_TRUE(tw.Ok()) << "GetTableware()";
+        ASSERT_THAT(tw.Value(), testing::UnorderedElementsAreArray(want));
     }
 }
 
 TEST(DB, GetRecipeInfo) {
     auto db = DB::Create(":memory:");
 
-    auto milk_id = db->AddProduct("milk", 48).id;
-    auto flour_id = db->AddProduct("flour", 364).id;
-    auto egg_id = db->AddProduct("egg", 156).id;
+    auto milk_id = db->AddProduct("milk", 48).Value();
+    auto flour_id = db->AddProduct("flour", 364).Value();
+    auto egg_id = db->AddProduct("egg", 156).Value();
 
     auto pancake_id =
-        db->CreateRecipe("pancake", "do it", {{milk_id, 500}, {flour_id, 200}, {egg_id, 0}}).id;
+        db->CreateRecipe("pancake", "do it", {{milk_id, 500}, {flour_id, 200}, {egg_id, 0}});
+    ASSERT_TRUE(pancake_id.Ok())
+        << "CreateRecipe(pancake, do it, {{milk_id, 500}, {flour_id, 200}, {egg_id, 0}})";
 
-    auto got = db->GetRecipeInfo(pancake_id);
-    ASSERT_TRUE(got);
-    EXPECT_EQ(got->header.name, "pancake");
-    EXPECT_EQ(got->header.id, pancake_id);
-    EXPECT_EQ(got->description, "do it");
-    EXPECT_THAT(got->ingredients, testing::UnorderedElementsAre(RecipeIngredient(milk_id, 500),
-                                                                RecipeIngredient(flour_id, 200)))
+    auto got = std::move(db->GetRecipeInfo(pancake_id.Value()));
+    ASSERT_TRUE(got.Ok());
+    EXPECT_EQ(got.Value().header.name, "pancake");
+    EXPECT_EQ(got.Value().header.id, pancake_id.Value());
+    EXPECT_EQ(got.Value().description, "do it");
+    EXPECT_THAT(got.Value().ingredients,
+                testing::UnorderedElementsAre(RecipeIngredient(milk_id, 500),
+                                              RecipeIngredient(flour_id, 200)))
         << "all non-zero weight ingredients should be present";
 }
 
 TEST(DB, CreateRecipe_Duplicate) {
     auto db = DB::Create(":memory:");
 
-    auto milk_id = db->AddProduct("milk", 48).id;
-    auto flour_id = db->AddProduct("flour", 364).id;
+    auto milk_id = db->AddProduct("milk", 48).Value();
+    auto flour_id = db->AddProduct("flour", 364).Value();
 
-    ASSERT_EQ(db->CreateRecipe("pie", "3.14", {{milk_id, 500}, {flour_id, 200}}).code,
-              DB::Result::OK);
-    ASSERT_EQ(db->CreateRecipe("pie", "3.14 inserting again", {{flour_id, 100}}).code,
-              DB::Result::INVALID_ARGUMENT);
+    ASSERT_TRUE(db->CreateRecipe("pie", "3.14", {{milk_id, 500}, {flour_id, 200}}).Ok());
+    ASSERT_EQ(db->CreateRecipe("pie", "3.14 inserting again", {{flour_id, 100}}).Code(),
+              StatusCode::INVALID_ARGUMENT);
 }
 
 TEST(DB, CreateRecipe_UnknownIngredient) {
     auto db = DB::Create(":memory:");
 
-    auto milk_id = db->AddProduct("milk", 48).id;
-    ASSERT_EQ(db->CreateRecipe("name", "unknown ingredient id", {{milk_id, 100}, {-1, 200}}).code,
-              DB::Result::INVALID_ARGUMENT);
-    EXPECT_THAT(db->GetRecipes(), testing::IsEmpty())
+    auto milk_id = db->AddProduct("milk", 48).Value();
+
+    ASSERT_EQ(db->CreateRecipe("name", "unknown ingredient id", {{milk_id, 100}, {-1, 200}}).Code(),
+              StatusCode::INVALID_ARGUMENT);
+
+    auto recipes = std::move(db->GetRecipes());
+    ASSERT_TRUE(recipes.Ok()) << "GetRecipes()";
+    ASSERT_THAT(recipes.Value(), testing::IsEmpty())
         << "completely roll back after unsuccessfull CreateRecipe";
 }
 
 TEST(DB, CreateDeleteRecipe) {
     auto db = DB::Create(":memory:");
 
-    auto milk_id = db->AddProduct("milk", 48).id;
-    auto flour_id = db->AddProduct("flour", 364).id;
-    auto egg_id = db->AddProduct("egg", 156).id;
+    auto milk_id = db->AddProduct("milk", 48).Value();
+    auto flour_id = db->AddProduct("flour", 364).Value();
+    auto egg_id = db->AddProduct("egg", 156).Value();
 
     struct {
         std::string name;
@@ -155,21 +213,24 @@ TEST(DB, CreateDeleteRecipe) {
 
     std::vector<RecipeHeader> recipe_headers;
     for (const auto& [name, descr, ingredients] : recipes) {
-        auto [code, id] = db->CreateRecipe(name, descr, ingredients);
-        EXPECT_EQ(code, DB::Result::OK)
-            << "CreateRecipe(name=" << name << ", description=" << descr
-            << ", ingredients=" << testing::PrintToString(ingredients) << ")";
-        recipe_headers.emplace_back(name, id);
+        auto recipe = std::move(db->CreateRecipe(name, descr, ingredients));
+        ASSERT_TRUE(recipe.Ok()) << "CreateRecipe(name=" << name << ", description=" << descr
+                                 << ", ingredients=" << testing::PrintToString(ingredients) << ")";
+        recipe_headers.emplace_back(name, recipe.Value());
     }
 
-    EXPECT_THAT(db->GetRecipes(), testing::UnorderedElementsAreArray(recipe_headers));
+    auto all = std::move(db->GetRecipes());
+    ASSERT_TRUE(all.Ok()) << "GetRecipes()";
+    ASSERT_THAT(all.Value(), testing::UnorderedElementsAreArray(recipe_headers));
 
     while (!recipe_headers.empty()) {
         size_t last_id = recipe_headers.back().id;
         recipe_headers.pop_back();
 
-        EXPECT_TRUE(db->DeleteRecipe(last_id)) << last_id;
-        EXPECT_THAT(db->GetRecipes(), testing::UnorderedElementsAreArray(recipe_headers));
+        ASSERT_TRUE(db->DeleteRecipe(last_id)) << last_id;
+        auto recipes = std::move(db->GetRecipes());
+        ASSERT_TRUE(recipes.Ok()) << "GetRecipes()";
+        ASSERT_THAT(recipes.Value(), testing::UnorderedElementsAreArray(recipe_headers));
     }
 }
 

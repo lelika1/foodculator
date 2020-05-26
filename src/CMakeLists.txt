@@ -12,9 +12,11 @@ set_target_properties(foodculator
 )
 
 add_subdirectory(db)
+add_subdirectory(util)
 
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_SOURCE_DIR}/lib")
-target_link_libraries(foodculator DbLib 
+target_link_libraries(foodculator DbLib
+								  UtilLib 
 								  Httplib 
 								  json11 
 								  TgBot)
