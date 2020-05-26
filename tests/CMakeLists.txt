@@ -9,5 +9,6 @@ set_target_properties(tests
 	CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -fno-rtti -O2"
 )
 
-target_include_directories(tests PRIVATE "${PROJECT_SOURCE_DIR}")
+include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_SOURCE_DIR}/lib")
+
 target_link_libraries(tests DbLib gtest gmock gtest_main)

@@ -7,8 +7,8 @@
 #include <string_view>
 #include <unordered_map>
 
+#include "httplib.h"
 #include "db/db.h"
-#include "httplib/httplib.h"
 #include "json11/json11.hpp"
 #include "tgbot/tgbot.h"
 
