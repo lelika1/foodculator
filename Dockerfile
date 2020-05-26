@@ -12,7 +12,7 @@ RUN mkdir /build \
 RUN /build/tests/tests
 
 FROM BASE
-COPY --from=builder /build/foodculator /app/
+COPY --from=builder /build/src/foodculator /app/
 COPY --from=builder /src/static /app/static
 ARG version="UNKNOWN"
 ENV VERSION="$version"
