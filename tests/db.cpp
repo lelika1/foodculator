@@ -6,6 +6,7 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -14,35 +15,50 @@
 
 namespace foodculator {
 namespace {
+std::string_view CodeToString(StatusCode code) {
+    switch (code) {
+        case StatusCode::OK:
+            return "OK";
+        case StatusCode::INVALID_ARGUMENT:
+            return "INVALID_ARGUMENT";
+        case StatusCode::NOT_FOUND:
+            return "NOT_FOUND";
+        default:
+            return "INTERNAL_ERROR";
+    }
+}
 
 TEST(DB, EmptyDatabase) {
     auto db = DB::Create(":memory:");
 
     const size_t UNKNOWN_ID = 100;
 
-    auto products = std::move(db->GetProducts());
-    ASSERT_TRUE(products.Ok());
+    auto products = db->GetProducts();
+    ASSERT_TRUE(products.Ok()) << "GetProducts() = {code: " << CodeToString(products.Code())
+                               << ", error: " << products.Error() << "};";
     EXPECT_THAT(products.Value(), testing::IsEmpty());
 
-    auto product = std::move(db->GetProduct(UNKNOWN_ID));
+    auto product = db->GetProduct(UNKNOWN_ID);
     ASSERT_FALSE(product.Ok());
     EXPECT_EQ(product.Code(), StatusCode::NOT_FOUND);
 
     EXPECT_TRUE(db->DeleteProduct(UNKNOWN_ID));
 
-    auto tw = std::move(db->GetTableware());
-    ASSERT_TRUE(tw.Ok());
+    auto tw = db->GetTableware();
+    ASSERT_TRUE(tw.Ok()) << "GetTableware() = {code: " << CodeToString(tw.Code())
+                         << ", error: " << tw.Error() << "};";
     EXPECT_THAT(tw.Value(), testing::IsEmpty());
 
     EXPECT_TRUE(db->DeleteTableware(UNKNOWN_ID));
 
-    auto recipes = std::move(db->GetRecipes());
-    ASSERT_TRUE(recipes.Ok());
+    auto recipes = db->GetRecipes();
+    ASSERT_TRUE(recipes.Ok()) << "GetRecipes() = {code: " << CodeToString(recipes.Code())
+                              << ", error: " << recipes.Error() << "};";
     EXPECT_THAT(recipes.Value(), testing::IsEmpty());
 
     EXPECT_TRUE(db->DeleteRecipe(UNKNOWN_ID));
 
-    auto recipe = std::move(db->GetRecipeInfo(UNKNOWN_ID));
+    auto recipe = db->GetRecipeInfo(UNKNOWN_ID);
     ASSERT_FALSE(recipe.Ok());
     EXPECT_EQ(recipe.Code(), StatusCode::NOT_FOUND);
 }
@@ -57,18 +73,21 @@ TEST(DB, AddDeleteProduct) {
         {"avocado", 160},
     };
     for (auto& v : want) {
-        auto st = std::move(db->AddProduct(v.name, v.kcal));
-        ASSERT_TRUE(st.Ok()) << "AddProduct(" << v.name << ", " << v.kcal << ")";
+        auto st = db->AddProduct(v.name, v.kcal);
+        ASSERT_TRUE(st.Ok()) << "AddProduct(" << v.name << ", " << v.kcal
+                             << ") = {code: " << CodeToString(st.Code())
+                             << ", error: " << st.Error() << "};";
         v.id = st.Value();
     }
 
     const auto& dup = want[0];
-    auto dup_st = std::move(db->AddProduct(dup.name, dup.kcal));
+    auto dup_st = db->AddProduct(dup.name, dup.kcal);
     ASSERT_FALSE(dup_st.Ok()) << "duplicate insertion should fail";
     ASSERT_EQ(dup_st.Code(), StatusCode::INVALID_ARGUMENT) << "duplicate insertion should fail";
 
-    auto all = std::move(db->GetProducts());
-    ASSERT_TRUE(all.Ok()) << "GetProducts()";
+    auto all = db->GetProducts();
+    ASSERT_TRUE(all.Ok()) << "GetProducts() = {code: " << CodeToString(all.Code())
+                          << ", error: " << all.Error() << "};";
     ASSERT_THAT(all.Value(), testing::UnorderedElementsAreArray(want));
 
     while (!want.empty()) {
@@ -77,8 +96,9 @@ TEST(DB, AddDeleteProduct) {
 
         ASSERT_TRUE(db->DeleteProduct(last_id)) << last_id;
 
-        auto products = std::move(db->GetProducts());
-        ASSERT_TRUE(products.Ok()) << "GetProducts()";
+        auto products = db->GetProducts();
+        ASSERT_TRUE(products.Ok()) << "GetProducts() = {code: " << CodeToString(products.Code())
+                                   << ", error: " << products.Error() << "};";
         ASSERT_THAT(products.Value(), testing::UnorderedElementsAreArray(want));
     }
 }
@@ -89,11 +109,16 @@ TEST(DB, GetProduct) {
     std::string name = "milk";
     std::uint32_t kcal = 48;
 
-    auto st = std::move(db->AddProduct(name, kcal));
-    ASSERT_TRUE(st.Ok()) << "AddProduct(" << name << ", " << kcal << ")";
+    auto st = db->AddProduct(name, kcal);
+    ASSERT_TRUE(st.Ok()) << "AddProduct(" << name << ", " << kcal
+                         << ") = {code: " << CodeToString(st.Code()) << ", error: " << st.Error()
+                         << "};";
 
-    auto product = std::move(db->GetProduct(st.Value()));
-    ASSERT_TRUE(product.Ok()) << "GetProduct(" << st.Value() << ")";
+    auto product = db->GetProduct(st.Value());
+    ASSERT_TRUE(product.Ok()) << "GetProduct(" << st.Value()
+                              << ") = {code: " << CodeToString(product.Code())
+                              << ", error: " << product.Error() << "};";
+
     EXPECT_EQ(product.Value().name, name);
     EXPECT_EQ(product.Value().kcal, kcal);
     EXPECT_EQ(product.Value().id, st.Value());
@@ -120,18 +145,21 @@ TEST(DB, AddDeleteTableware) {
         {"big-pot", 10},
     };
     for (auto& v : want) {
-        auto st = std::move(db->AddTableware(v.name, v.weight));
-        ASSERT_TRUE(st.Ok()) << "AddTableware(" << v.name << ", " << v.weight << ")";
+        auto st = db->AddTableware(v.name, v.weight);
+        ASSERT_TRUE(st.Ok()) << "AddTableware(" << v.name << ", " << v.weight
+                             << ") = {code: " << CodeToString(st.Code())
+                             << ", error: " << st.Error() << "};";
         v.id = st.Value();
     }
 
     const auto& dup = want[0];
-    auto dup_st = std::move(db->AddTableware(dup.name, dup.weight));
+    auto dup_st = db->AddTableware(dup.name, dup.weight);
     ASSERT_FALSE(dup_st.Ok()) << "duplicate insertion should fail";
     ASSERT_EQ(dup_st.Code(), StatusCode::INVALID_ARGUMENT) << "duplicate insertion should fail ";
 
-    auto all = std::move(db->GetTableware());
-    ASSERT_TRUE(all.Ok()) << "GetTableware()";
+    auto all = db->GetTableware();
+    ASSERT_TRUE(all.Ok()) << "GetTableware() = {code: " << CodeToString(all.Code())
+                          << ", error: " << all.Error() << "};";
     ASSERT_THAT(all.Value(), testing::UnorderedElementsAreArray(want));
 
     while (!want.empty()) {
@@ -140,8 +168,9 @@ TEST(DB, AddDeleteTableware) {
 
         ASSERT_TRUE(db->DeleteTableware(last_id)) << last_id;
 
-        auto tw = std::move(db->GetTableware());
-        ASSERT_TRUE(tw.Ok()) << "GetTableware()";
+        auto tw = db->GetTableware();
+        ASSERT_TRUE(tw.Ok()) << "GetTableware() = {code: " << CodeToString(tw.Code())
+                             << ", error: " << tw.Error() << "};";
         ASSERT_THAT(tw.Value(), testing::UnorderedElementsAreArray(want));
     }
 }
@@ -156,10 +185,13 @@ TEST(DB, GetRecipeInfo) {
     auto pancake_id =
         db->CreateRecipe("pancake", "do it", {{milk_id, 500}, {flour_id, 200}, {egg_id, 0}});
     ASSERT_TRUE(pancake_id.Ok())
-        << "CreateRecipe(pancake, do it, {{milk_id, 500}, {flour_id, 200}, {egg_id, 0}})";
+        << "CreateRecipe(pancake, do it, {{milk_id, 500}, {flour_id, 200}, {egg_id, 0}}) = {code: "
+        << CodeToString(pancake_id.Code()) << ", error: " << pancake_id.Error() << "};";
 
-    auto got = std::move(db->GetRecipeInfo(pancake_id.Value()));
-    ASSERT_TRUE(got.Ok());
+    auto got = db->GetRecipeInfo(pancake_id.Value());
+    ASSERT_TRUE(got.Ok()) << "GetRecipeInfo(" << pancake_id.Value()
+                          << ") = {code: " << CodeToString(got.Code()) << ", error: " << got.Error()
+                          << "};";
     EXPECT_EQ(got.Value().header.name, "pancake");
     EXPECT_EQ(got.Value().header.id, pancake_id.Value());
     EXPECT_EQ(got.Value().description, "do it");
@@ -188,8 +220,9 @@ TEST(DB, CreateRecipe_UnknownIngredient) {
     ASSERT_EQ(db->CreateRecipe("name", "unknown ingredient id", {{milk_id, 100}, {-1, 200}}).Code(),
               StatusCode::INVALID_ARGUMENT);
 
-    auto recipes = std::move(db->GetRecipes());
-    ASSERT_TRUE(recipes.Ok()) << "GetRecipes()";
+    auto recipes = db->GetRecipes();
+    ASSERT_TRUE(recipes.Ok()) << "GetRecipes() = {code: " << CodeToString(recipes.Code())
+                              << ", error: " << recipes.Error() << "};";
     ASSERT_THAT(recipes.Value(), testing::IsEmpty())
         << "completely roll back after unsuccessfull CreateRecipe";
 }
@@ -213,14 +246,17 @@ TEST(DB, CreateDeleteRecipe) {
 
     std::vector<RecipeHeader> recipe_headers;
     for (const auto& [name, descr, ingredients] : recipes) {
-        auto recipe = std::move(db->CreateRecipe(name, descr, ingredients));
+        auto recipe = db->CreateRecipe(name, descr, ingredients);
         ASSERT_TRUE(recipe.Ok()) << "CreateRecipe(name=" << name << ", description=" << descr
-                                 << ", ingredients=" << testing::PrintToString(ingredients) << ")";
+                                 << ", ingredients=" << testing::PrintToString(ingredients)
+                                 << ") = {code: " << CodeToString(recipe.Code())
+                                 << ", error: " << recipe.Error() << "};";
         recipe_headers.emplace_back(name, recipe.Value());
     }
 
-    auto all = std::move(db->GetRecipes());
-    ASSERT_TRUE(all.Ok()) << "GetRecipes()";
+    auto all = db->GetRecipes();
+    ASSERT_TRUE(all.Ok()) << "GetRecipes() = {code: " << CodeToString(all.Code())
+                          << ", error: " << all.Error() << "};";
     ASSERT_THAT(all.Value(), testing::UnorderedElementsAreArray(recipe_headers));
 
     while (!recipe_headers.empty()) {
@@ -228,8 +264,9 @@ TEST(DB, CreateDeleteRecipe) {
         recipe_headers.pop_back();
 
         ASSERT_TRUE(db->DeleteRecipe(last_id)) << last_id;
-        auto recipes = std::move(db->GetRecipes());
-        ASSERT_TRUE(recipes.Ok()) << "GetRecipes()";
+        auto recipes = db->GetRecipes();
+        ASSERT_TRUE(recipes.Ok()) << "GetRecipes() = {code: " << CodeToString(recipes.Code())
+                                  << ", error: " << recipes.Error() << "};";
         ASSERT_THAT(recipes.Value(), testing::UnorderedElementsAreArray(recipe_headers));
     }
 }

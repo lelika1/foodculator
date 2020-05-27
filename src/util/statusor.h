@@ -10,7 +10,7 @@ template <class T>
 class StatusOr {
    public:
     explicit StatusOr(T t) : value_(std::move(t)), code_(StatusCode::OK){};
-    StatusOr(StatusCode code, std::string error) : code_(code), error_(error){};
+    StatusOr(StatusCode code, std::string error) : code_(code), error_(std::move(error)){};
 
     bool Ok() const { return code_ == StatusCode::OK && value_.has_value(); };
     StatusCode Code() const { return code_; };
@@ -23,23 +23,6 @@ class StatusOr {
 
    private:
     std::optional<T> value_;
-    StatusCode code_;
-    std::string error_;
-};
-
-template <>
-class StatusOr<void> {
-   public:
-    StatusOr() : code_(StatusCode::OK){};
-    StatusOr(StatusCode code, std::string error) : code_(code), error_(error){};
-
-    bool Ok() const { return code_ == StatusCode::OK; }
-    StatusCode Code() const { return code_; };
-
-    std::string& Error() { return error_; }
-    std::string_view Error() const { return error_; }
-
-   private:
     StatusCode code_;
     std::string error_;
 };

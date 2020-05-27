@@ -20,7 +20,7 @@ std::string ReadHtml(const std::string& path) {
     return str;
 }
 
-void SetupResponse(std::string msg, int status, httplib::Response* res) {
+void ReplyErr(std::string msg, int status, httplib::Response* res) {
     res->set_content(std::move(msg), "text/plain");
     res->status = status;
 }
@@ -95,9 +95,9 @@ int main(int argc, char** argv) {
     }
 
     srv.Get("/get_ingredients", [&db](const httplib::Request& req, httplib::Response& res) {
-        auto products = std::move(db->GetProducts());
+        auto products = db->GetProducts();
         if (!products.Ok()) {
-            SetupResponse(std::move(products.Error()), 500, &res);
+            ReplyErr(std::move(products.Error()), 500, &res);
             return;
         }
         res.set_content(json11::Json(std::move(products.Value())).dump(), "text/json");
@@ -107,36 +107,37 @@ int main(int argc, char** argv) {
         std::string err;
         json11::Json input = json11::Json::parse(req.body, err);
         if (!err.empty()) {
-            SetupResponse("Failed to parse the request: " + err, 400, &res);
+            ReplyErr("Failed to parse the request: " + err, 400, &res);
             return;
         }
 
         std::string name = input["product"].string_value();
         if (name.empty() || !input.has_shape({{"kcal", json11::Json::NUMBER}}, err)) {
-            SetupResponse("Ingredient should have `product` (string) and `kcal` (number) fields.",
-                          400, &res);
+            ReplyErr("Ingredient should have `product` (string) and `kcal` (number) fields.", 400,
+                     &res);
             return;
         }
 
         double kcal = input["kcal"].number_value();
         if (kcal < 0.0) {
-            SetupResponse("Ingredient cannot have negative `kcal` value.", 400, &res);
+            ReplyErr("Ingredient cannot have negative `kcal` value.", 400, &res);
             return;
         }
 
-        auto st = std::move(db->AddProduct(std::move(name), static_cast<uint32_t>(kcal)));
+        auto st = db->AddProduct(std::move(name), static_cast<uint32_t>(kcal));
         if (!st.Ok()) {
-            SetupResponse(std::move(st.Error()), 500, &res);
+            ReplyErr(std::move(st.Error()), 500, &res);
             return;
         }
         res.set_content(std::to_string(st.Value()), "text/plain");
     });
 
     srv.Get(R"(/ingredient/(\d+))", [&db](const httplib::Request& req, httplib::Response& res) {
-        auto product = std::move(db->GetProduct(std::stoull(req.matches[1].str())));
+        size_t id = static_cast<size_t>(std::stoull(req.matches[1].str()));
+        auto product = db->GetProduct(id);
         if (!product.Ok()) {
             int code = (product.Code() == foodculator::StatusCode::NOT_FOUND) ? 404 : 500;
-            SetupResponse(std::move(product.Error()), code, &res);
+            ReplyErr(std::move(product.Error()), code, &res);
             return;
         }
         res.set_content(json11::Json(std::move(product.Value())).dump(), "text/json");
@@ -144,14 +145,14 @@ int main(int argc, char** argv) {
 
     srv.Delete(R"(/ingredient/(\d+))", [&db](const httplib::Request& req, httplib::Response& res) {
         if (!db->DeleteProduct(std::stoull(req.matches[1].str()))) {
-            SetupResponse("DB request failed. Try again later.", 500, &res);
+            ReplyErr("DB request failed. Try again later.", 500, &res);
         }
     });
 
     srv.Get("/get_tableware", [&db](const httplib::Request& req, httplib::Response& res) {
-        auto tw = std::move(db->GetTableware());
+        auto tw = db->GetTableware();
         if (!tw.Ok()) {
-            SetupResponse(std::move(tw.Error()), 500, &res);
+            ReplyErr(std::move(tw.Error()), 500, &res);
             return;
         }
         res.set_content(json11::Json(std::move(tw.Value())).dump(), "text/json");
@@ -161,25 +162,26 @@ int main(int argc, char** argv) {
         std::string err;
         json11::Json input = json11::Json::parse(req.body, err);
         if (!err.empty()) {
-            SetupResponse("Failed to parse the request: " + err, 400, &res);
+            ReplyErr("Failed to parse the request: " + err, 400, &res);
             return;
         }
 
         std::string name = input["name"].string_value();
         if (name.empty() || !input.has_shape({{"weight", json11::Json::NUMBER}}, err)) {
-            SetupResponse("The pot should have `name` (string) and `weight` (number) fields.", 400,
-                          &res);
+            ReplyErr("The pot should have `name` (string) and `weight` (number) fields.", 400,
+                     &res);
             return;
         }
-        double weight = input["weight"].number_value();
-        if (weight < 0.0) {
-            SetupResponse("The weight couldn't be negative.", 400, &res);
+        double weight_double = input["weight"].number_value();
+        if (weight_double < 0.0) {
+            ReplyErr("The weight couldn't be negative.", 400, &res);
             return;
         }
 
-        auto st = std::move(db->AddTableware(std::move(name), static_cast<uint32_t>(weight)));
+        uint32_t weight = static_cast<uint32_t>(weight_double);
+        auto st = db->AddTableware(std::move(name), weight);
         if (!st.Ok()) {
-            SetupResponse(std::move(st.Error()), 500, &res);
+            ReplyErr(std::move(st.Error()), 500, &res);
             return;
         }
         res.set_content(std::to_string(st.Value()), "text/plain");
@@ -187,14 +189,14 @@ int main(int argc, char** argv) {
 
     srv.Delete(R"(/tableware/(\d+))", [&db](const httplib::Request& req, httplib::Response& res) {
         if (!db->DeleteTableware(std::stoull(req.matches[1].str()))) {
-            SetupResponse("A pot wasn't deleted. Some SQL error occured.", 500, &res);
+            ReplyErr("A pot wasn't deleted. Some SQL error occured.", 500, &res);
         }
     });
 
     srv.Get("/get_recipes", [&db](const httplib::Request& req, httplib::Response& res) {
-        auto recipes = std::move(db->GetRecipes());
+        auto recipes = db->GetRecipes();
         if (!recipes.Ok()) {
-            SetupResponse(std::move(recipes.Error()), 500, &res);
+            ReplyErr(std::move(recipes.Error()), 500, &res);
             return;
         }
         res.set_content(json11::Json(std::move(recipes.Value())).dump(), "text/json");
@@ -204,13 +206,13 @@ int main(int argc, char** argv) {
         std::string err;
         json11::Json input = json11::Json::parse(req.body, err);
         if (!err.empty()) {
-            SetupResponse("Failed to parse the request: " + err, 400, &res);
+            ReplyErr("Failed to parse the request: " + err, 400, &res);
             return;
         }
 
         std::string name = input["header"]["name"].string_value();
         if (name.empty()) {
-            SetupResponse("Recipe name should not be empty.", 400, &res);
+            ReplyErr("Recipe name should not be empty.", 400, &res);
             return;
         }
 
@@ -218,15 +220,14 @@ int main(int argc, char** argv) {
         for (const auto& v : input["ingredients"].array_items()) {
             if (!v.has_shape({{"id", json11::Json::NUMBER}, {"weight", json11::Json::NUMBER}},
                              err)) {
-                SetupResponse("Each ingredient should have id and weight number fields.", 400,
-                              &res);
+                ReplyErr("Each ingredient should have id and weight number fields.", 400, &res);
                 return;
             }
 
             double id = v["id"].number_value();
             double weight = v["weight"].number_value();
             if (id < 0.0 || weight < 0.0) {
-                SetupResponse("id and weight must be >= 0.", 400, &res);
+                ReplyErr("id and weight must be >= 0.", 400, &res);
                 return;
             }
 
@@ -235,19 +236,20 @@ int main(int argc, char** argv) {
 
         std::string description = input["description"].string_value();
 
-        auto st = std::move(db->CreateRecipe(name, description, ingredients));
+        auto st = db->CreateRecipe(name, description, ingredients);
         if (!st.Ok()) {
-            SetupResponse(std::move(st.Error()), 500, &res);
+            ReplyErr(std::move(st.Error()), 500, &res);
             return;
         }
         res.set_content(std::to_string(st.Value()), "text/plain");
     });
 
     srv.Get(R"(/recipe/(\d+))", [&db](const httplib::Request& req, httplib::Response& res) {
-        auto recipe = std::move(db->GetRecipeInfo(std::stoull(req.matches[1].str())));
+        size_t id = std::stoull(req.matches[1].str());
+        auto recipe = db->GetRecipeInfo(id);
         if (!recipe.Ok()) {
             int code = (recipe.Code() == foodculator::StatusCode::NOT_FOUND) ? 404 : 500;
-            SetupResponse(std::move(recipe.Error()), code, &res);
+            ReplyErr(std::move(recipe.Error()), code, &res);
             return;
         }
 
@@ -256,7 +258,7 @@ int main(int argc, char** argv) {
 
     srv.Delete(R"(/recipe/(\d+))", [&db](const httplib::Request& req, httplib::Response& res) {
         if (!db->DeleteRecipe(std::stoull(req.matches[1].str()))) {
-            SetupResponse("DB request failed. Try again later.", 500, &res);
+            ReplyErr("DB request failed. Try again later.", 500, &res);
             return;
         }
     });
@@ -265,7 +267,7 @@ int main(int argc, char** argv) {
         std::string err;
         const json11::Json in = json11::Json::parse(req.body, err);
         if (!err.empty()) {
-            SetupResponse("Failed to parse input as json: " + err, 400, &res);
+            ReplyErr("Failed to parse input as json: " + err, 400, &res);
             return;
         }
 
@@ -280,9 +282,9 @@ int main(int argc, char** argv) {
 
         std::stringstream text;
         if (intent_name == "ingredients") {
-            auto products = std::move(db->GetProducts());
+            auto products = db->GetProducts();
             if (!products.Ok()) {
-                SetupResponse(products.Error(), 500, &res);
+                ReplyErr(std::move(products.Error()), 500, &res);
                 return;
             }
 
@@ -291,9 +293,9 @@ int main(int argc, char** argv) {
                 text << "\n" << ingredient.name << " по " << ingredient.kcal << " калории,";
             }
         } else if (intent_name == "pots") {
-            auto tw = std::move(db->GetTableware());
+            auto tw = db->GetTableware();
             if (!tw.Ok()) {
-                SetupResponse(tw.Error(), 500, &res);
+                ReplyErr(std::move(tw.Error()), 500, &res);
                 return;
             }
 
