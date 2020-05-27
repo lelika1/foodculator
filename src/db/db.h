@@ -1,7 +1,5 @@
 #include <memory>
 #include <mutex>
-#include <optional>
-#include <sstream>
 #include <string>
 #include <string_view>
 #include <variant>
@@ -122,8 +120,8 @@ class DB {
     explicit DB(sqlite3* db) : db_(db) {}
 
     using BindParameter = std::variant<uint32_t, std::string>;
-    StatusOr<void> Insert(std::string_view table, const std::vector<std::string_view>& fields,
-                          const std::vector<BindParameter>& params);
+    StatusCode Insert(std::string_view table, const std::vector<std::string_view>& fields,
+                      const std::vector<BindParameter>& params);
     StatusOr<size_t> SelectId(std::string_view table, const std::vector<std::string_view>& fields,
                               const std::vector<BindParameter>& params, std::string_view id_field);
 

@@ -3,7 +3,6 @@
 #include <sqlite3.h>
 
 #include <iostream>
-#include <optional>
 #include <sstream>
 #include <string>
 #include <string_view>
@@ -89,11 +88,14 @@ DB::~DB() {
 
 StatusOr<size_t> DB::AddProduct(std::string name, uint32_t kcal) {
     std::vector<BindParameter> params = {{std::move(name)}, {kcal}};
-    if (auto st = Insert("INGREDIENTS", {"NAME", "KCAL"}, params); !st.Ok()) {
-        if (st.Code() == StatusCode::INVALID_ARGUMENT) {
-            return {st.Code(), "This ingredient already exists in the database."};
-        }
-        return {st.Code(), st.Error()};
+    switch (Insert("INGREDIENTS", {"NAME", "KCAL"}, params)) {
+        case StatusCode::OK:
+            break;
+        case StatusCode::INVALID_ARGUMENT:
+            return {StatusCode::INVALID_ARGUMENT,
+                    "This ingredient already exists in the database."};
+        default:
+            return {StatusCode::INTERNAL_ERROR, "DB request failed.Try again later."};
     }
 
     auto st = SelectId("INGREDIENTS", {"NAME", "KCAL"}, params, "ID");
@@ -105,11 +107,13 @@ StatusOr<size_t> DB::AddProduct(std::string name, uint32_t kcal) {
 
 StatusOr<size_t> DB::AddTableware(std::string name, uint32_t weight) {
     std::vector<BindParameter> params = {{std::move(name)}, {weight}};
-    if (auto st = Insert("TABLEWARE", {"NAME", "WEIGHT"}, params); !st.Ok()) {
-        if (st.Code() == StatusCode::INVALID_ARGUMENT) {
-            return {st.Code(), "This pot already exists in the database."};
-        }
-        return {st.Code(), st.Error()};
+    switch (Insert("TABLEWARE", {"NAME", "WEIGHT"}, params)) {
+        case StatusCode::OK:
+            break;
+        case StatusCode::INVALID_ARGUMENT:
+            return {StatusCode::INVALID_ARGUMENT, "This pot already exists in the database."};
+        default:
+            return {StatusCode::INTERNAL_ERROR, "DB request failed.Try again later."};
     }
 
     auto st = SelectId("TABLEWARE", {"NAME", "WEIGHT"}, params, "ID");
@@ -119,8 +123,8 @@ StatusOr<size_t> DB::AddTableware(std::string name, uint32_t weight) {
     return st;
 }
 
-StatusOr<void> DB::Insert(std::string_view table, const std::vector<std::string_view>& fields,
-                          const std::vector<BindParameter>& params) {
+StatusCode DB::Insert(std::string_view table, const std::vector<std::string_view>& fields,
+                      const std::vector<BindParameter>& params) {
     if (params.size() % fields.size() != 0) {
         std::cerr << "params.size() % fields.size() != 0: " << fields.size() << " " << params.size()
                   << std::endl;
@@ -151,14 +155,7 @@ StatusOr<void> DB::Insert(std::string_view table, const std::vector<std::string_
 
     std::stringstream insert;
     insert << "INSERT INTO " << table << "(" << names.str() << ") VALUES " << binds.str() << ";";
-    switch (Exec(insert.str(), params).Code()) {
-        case StatusCode::OK:
-            return {};
-        case StatusCode::INVALID_ARGUMENT:
-            return {StatusCode::INVALID_ARGUMENT, "DB constrains failed."};
-        default:
-            return {StatusCode::INTERNAL_ERROR, "DB request failed. Try again later."};
-    }
+    return Exec(insert.str(), params).Code();
 }
 
 StatusOr<size_t> DB::SelectId(std::string_view table, const std::vector<std::string_view>& fields,
@@ -179,63 +176,88 @@ StatusOr<size_t> DB::SelectId(std::string_view table, const std::vector<std::str
 
     std::stringstream select_id;
     select_id << "SELECT " << id_field << " FROM " << table << " WHERE " << conds.str() << ";";
-    const auto& res = Exec(select_id.str(), params);
+    auto res = Exec(select_id.str(), params);
     if (!res.Ok()) {
-        return {res.Code(), "DB request failed. Try again later."};
+        return {res.Code(), std::move(res.Error())};
     }
 
-    if (res.Value().size() != 1 || res.Value()[0].size() != 1) {
-        return {StatusCode::NOT_FOUND, "No id for this element wasn found."};
+    if (res.Value().empty()) {
+        return {StatusCode::NOT_FOUND, "No id for this element was found."};
+    }
+
+    if (res.Value()[0].size() != 1) {
+        std::cerr << "'" << select_id.str() << "' returned " << res.Value()[0].size()
+                  << " columns.";
+        exit(2);
     }
 
     return StatusOr{std::stoul(res.Value()[0][0])};
 }
 
 StatusOr<Ingredient> DB::GetProduct(size_t id) {
-    const auto& res = Exec("SELECT NAME, KCAL from INGREDIENTS WHERE ID=?1;", {{id}});
+    std::string_view sql = "SELECT NAME, KCAL from INGREDIENTS WHERE ID=?1;";
+    auto res = Exec(sql, {{id}});
     if (!res.Ok()) {
-        return {res.Code(), "DB request failed. Try again later."};
+        return {res.Code(), std::move(res.Error())};
     }
 
-    if (res.Value().size() != 1 || res.Value()[0].size() != 2) {
+    if (res.Value().empty()) {
         return {StatusCode::NOT_FOUND, "Product with id=" + std::to_string(id) + " wasn't found."};
     }
 
     auto& row = res.Value()[0];
-    return StatusOr{Ingredient{std::move(row[0]), static_cast<uint32_t>(std::stoul(row[1])), id}};
+    if (row.size() != 2) {
+        std::cerr << "'" << sql << "' returned " << row.size() << " columns.";
+        exit(2);
+    }
+
+    std::string name = std::move(row[0]);
+    auto kcal = static_cast<uint32_t>(std::stoul(row[1]));
+    return StatusOr{Ingredient{std::move(name), kcal, id}};
 }
 
 StatusOr<std::vector<Ingredient>> DB::GetProducts() {
     std::vector<Ingredient> ret;
-    const auto& res = Exec("SELECT NAME, KCAL, ID from INGREDIENTS;", {});
+    std::string_view sql = "SELECT NAME, KCAL, ID from INGREDIENTS;";
+    auto res = Exec(sql, {});
     if (!res.Ok()) {
-        return {res.Code(), "DB request failed. Try again later."};
+        return {res.Code(), std::move(res.Error())};
     }
 
     for (auto& row : res.Value()) {
         if (row.size() != 3) {
-            return {StatusCode::INTERNAL_ERROR, "DB request failed. Try again later."};
+            std::cerr << "'" << sql << "' returned " << row.size() << " columns.";
+            exit(2);
         }
-        ret.emplace_back(std::move(row[0]), std::stoul(row[1]), std::stoull(row[2]));
+
+        std::string name = std::move(row[0]);
+        uint32_t kcal = static_cast<uint32_t>(std::stoul(row[1]));
+        size_t id = static_cast<size_t>(std::stoull(row[2]));
+        ret.emplace_back(std::move(name), kcal, id);
     }
-    return StatusOr(ret);
+    return StatusOr{std::move(ret)};
 }
 
 StatusOr<std::vector<Tableware>> DB::GetTableware() {
     std::vector<Tableware> ret;
-    const auto& res = Exec("SELECT NAME, WEIGHT, ID from TABLEWARE;", {});
+    std::string_view sql = "SELECT NAME, WEIGHT, ID from TABLEWARE;";
+    auto res = Exec(sql, {});
     if (!res.Ok()) {
-        return {res.Code(), "DB request failed. Try again later."};
+        return {res.Code(), std::move(res.Error())};
     }
 
     for (auto& row : res.Value()) {
         if (row.size() != 3) {
-            return {StatusCode::INTERNAL_ERROR, "DB request failed. Try again later."};
+            std::cerr << "'" << sql << "' returned " << row.size() << " columns.";
+            exit(2);
         }
 
-        ret.emplace_back(std::move(row[0]), std::stoul(row[1]), std::stoull(row[2]));
+        std::string name = std::move(row[0]);
+        uint32_t weight = static_cast<uint32_t>(std::stoul(row[1]));
+        size_t id = static_cast<size_t>(std::stoull(row[2]));
+        ret.emplace_back(std::move(name), weight, id);
     }
-    return StatusOr(ret);
+    return StatusOr{std::move(ret)};
 }
 
 bool DB::DeleteProduct(size_t id) {
@@ -252,11 +274,14 @@ StatusOr<size_t> DB::CreateRecipe(const std::string& name, const std::string& de
         return {StatusCode::INVALID_ARGUMENT, "Name of the recipe has to be non-empty."};
     }
 
-    if (auto st = Insert("RECIPE", {"NAME", "DESC"}, {{name}, {description}}); !st.Ok()) {
-        if (st.Code() == StatusCode::INVALID_ARGUMENT) {
-            return {st.Code(), "A recipe with the same name already exists in the database."};
-        }
-        return {st.Code(), st.Error()};
+    switch (Insert("RECIPE", {"NAME", "DESC"}, {{name}, {description}})) {
+        case StatusCode::OK:
+            break;
+        case StatusCode::INVALID_ARGUMENT:
+            return {StatusCode::INVALID_ARGUMENT,
+                    "A recipe with this name already exists in the database."};
+        default:
+            return {StatusCode::INTERNAL_ERROR, "DB request failed.Try again later."};
     }
 
     auto st = SelectId("RECIPE", {"NAME", "DESC"}, {{name}, {description}}, "ID");
@@ -279,41 +304,46 @@ StatusOr<size_t> DB::CreateRecipe(const std::string& name, const std::string& de
     }
 
     if (auto code = Insert("RECIPE_INGREDIENTS", {"RECIPE_ID", "INGR_ID", "WEIGHT"}, params);
-        !code.Ok()) {
+        code != StatusCode::OK) {
         Exec("DELETE FROM RECIPE_INGREDIENTS WHERE RECIPE_ID=?1;", {{recipe_id}});
         Exec("DELETE FROM RECIPE WHERE ID=?1;", {{recipe_id}});
 
-        if (code.Code() == StatusCode::INVALID_ARGUMENT) {
-            return {code.Code(), "Some of the ingredients don't exist in the database."};
+        if (code == StatusCode::INVALID_ARGUMENT) {
+            return {code, "Some of the ingredients don't exist in the database."};
         }
 
-        return {code.Code(), st.Error()};
+        return {code, "DB request failed.Try again later."};
     }
 
     return StatusOr{recipe_id};
 }
 
 StatusOr<std::vector<RecipeHeader>> DB::GetRecipes() {
-    auto res = Exec("SELECT NAME, ID FROM RECIPE;", {});
+    std::string_view sql = "SELECT NAME, ID FROM RECIPE;";
+    auto res = Exec(sql, {});
     if (!res.Ok()) {
-        return {res.Code(), "DB request failed. Try again later."};
+        return {res.Code(), std::move(res.Error())};
     }
 
     std::vector<RecipeHeader> ret;
     for (auto& row : res.Value()) {
         if (row.size() != 2) {
-            return {StatusCode::INTERNAL_ERROR, "DB request failed. Try again later."};
+            std::cerr << "'" << sql << "' returned " << row.size() << " columns.";
+            exit(2);
         }
 
-        ret.emplace_back(std::move(row[0]), std::stoull(row[1]));
+        std::string name = std::move(row[0]);
+        size_t id = static_cast<size_t>(std::stoull(row[1]));
+        ret.emplace_back(std::move(name), id);
     }
-    return StatusOr{ret};
+    return StatusOr{std::move(ret)};
 }
 
 StatusOr<FullRecipe> DB::GetRecipeInfo(size_t recipe_id) {
-    const auto& desc = Exec("SELECT NAME, DESC FROM RECIPE WHERE ID=?1;", {{recipe_id}});
+    std::string_view sql = "SELECT NAME, DESC FROM RECIPE WHERE ID=?1;";
+    auto desc = Exec(sql, {{recipe_id}});
     if (!desc.Ok()) {
-        return {desc.Code(), "DB request failed. Try again later."};
+        return {desc.Code(), std::move(desc.Error())};
     }
 
     if (desc.Value().empty()) {
@@ -321,15 +351,16 @@ StatusOr<FullRecipe> DB::GetRecipeInfo(size_t recipe_id) {
                 "No recipe with id=" + std::to_string(recipe_id) + " exists in the database."};
     }
 
-    const auto& ingredients =
-        Exec("SELECT INGR_ID, WEIGHT FROM RECIPE_INGREDIENTS WHERE RECIPE_ID=?1;", {{recipe_id}});
-    if (!ingredients.Ok()) {
-        return {ingredients.Code(), "DB request failed. Try again later."};
-    }
-
     auto& header_data = desc.Value()[0];
     if (header_data.size() != 2) {
-        return {StatusCode::INTERNAL_ERROR, "DB request failed. Try again later."};
+        std::cerr << "'" << sql << "' returned " << header_data.size() << " columns.";
+        exit(2);
+    }
+
+    sql = "SELECT INGR_ID, WEIGHT FROM RECIPE_INGREDIENTS WHERE RECIPE_ID=?1;";
+    auto ingredients = Exec(sql, {{recipe_id}});
+    if (!ingredients.Ok()) {
+        return {ingredients.Code(), std::move(ingredients.Error())};
     }
 
     FullRecipe recipe;
@@ -339,12 +370,15 @@ StatusOr<FullRecipe> DB::GetRecipeInfo(size_t recipe_id) {
 
     for (const auto& row : ingredients.Value()) {
         if (row.size() != 2) {
-            return {StatusCode::INTERNAL_ERROR, "DB request failed. Try again later."};
+            std::cerr << "'" << sql << "' returned " << row.size() << " columns.";
+            exit(2);
         }
 
-        recipe.ingredients.emplace_back(std::stoull(row[0]), std::stoul(row[1]));
+        size_t id = static_cast<size_t>(std::stoull(row[0]));
+        uint32_t weight = static_cast<uint32_t>(std::stoul(row[1]));
+        recipe.ingredients.emplace_back(id, weight);
     }
-    return StatusOr{recipe};
+    return StatusOr{std::move(recipe)};
 }
 
 bool DB::DeleteRecipe(size_t id) { return Exec("DELETE FROM RECIPE WHERE ID=?1;", {{id}}).Ok(); }
