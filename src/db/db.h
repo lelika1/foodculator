@@ -1,3 +1,6 @@
+#ifndef __SRC_DB_DB_H__
+#define __SRC_DB_DB_H__
+
 #include <memory>
 #include <mutex>
 #include <string>
@@ -134,3 +137,5 @@ class DB {
 };
 
 }  // namespace foodculator
+
+#endif
