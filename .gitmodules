@@ -10,3 +10,6 @@
 [submodule "lib/tgbot-cpp"]
 	path = lib/tgbot-cpp
 	url = https://github.com/reo7sp/tgbot-cpp
+[submodule "lib/fmt"]
+	path = lib/fmt
+	url = https://github.com/fmtlib/fmt
