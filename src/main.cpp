@@ -4,7 +4,6 @@
 #include <sstream>
 #include <streambuf>
 #include <string>
-#include <string_view>
 #include <unordered_map>
 
 #include "db/db.h"

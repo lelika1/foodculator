@@ -1,3 +1,6 @@
+#ifndef __SRC_UTIL_STATUSOR_H__
+#define __SRC_UTIL_STATUSOR_H__
+
 #include <optional>
 #include <string>
 #include <string_view>
@@ -5,6 +8,7 @@
 namespace foodculator {
 
 enum class StatusCode { OK = 0, INVALID_ARGUMENT, NOT_FOUND, INTERNAL_ERROR };
+std::string_view ToString(StatusCode code);
 
 template <class T>
 class StatusOr {
@@ -28,3 +32,5 @@ class StatusOr {
 };
 
 }  // namespace foodculator
+
+#endif
