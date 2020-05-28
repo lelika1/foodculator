@@ -5,6 +5,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 add_subdirectory(json11)
 add_subdirectory(tgbot-cpp)
 add_subdirectory(googletest)
+add_subdirectory(fmt)
 
 # Httplib
 
