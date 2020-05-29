@@ -7,6 +7,8 @@
 #include <string>
 #include <string_view>
 
+#include "fmt/format.h"
+
 namespace foodculator {
 
 namespace {
@@ -30,12 +32,12 @@ std::unique_ptr<DB> DB::Create(std::string_view path) {
 
     if (path != ":memory:") {
         if (int st = sqlite3_config(SQLITE_CONFIG_SERIALIZED); st != SQLITE_OK) {
-            std::cerr << "SQL config error: " << st << std::endl;
+            fmt::print(stderr, "SQL config error: {}\n", st);
         }
     }
 
     if (sqlite3_open(path.data(), &db) != SQLITE_OK) {
-        std::cerr << "Can't open database: " << path << std::endl;
+        fmt::print(stderr, "Can't open database: {}\n", path);
         return nullptr;
     }
 
@@ -71,7 +73,7 @@ std::unique_ptr<DB> DB::Create(std::string_view path) {
 
     char* err = nullptr;
     if (sqlite3_exec(db, sql, nullptr, 0, &err) != SQLITE_OK) {
-        std::cerr << "SQL error: " << err << std::endl;
+        fmt::print(stderr, "SQL error: {} \n", err);
         sqlite3_free(err);
         sqlite3_close(db);
         return nullptr;
@@ -95,7 +97,7 @@ StatusOr<size_t> DB::AddProduct(std::string name, uint32_t kcal) {
             return {StatusCode::INVALID_ARGUMENT,
                     "This ingredient already exists in the database."};
         default:
-            return {StatusCode::INTERNAL_ERROR, "DB request failed.Try again later."};
+            return {StatusCode::INTERNAL_ERROR, "DB request failed. Try again later."};
     }
 
     auto st = SelectId("INGREDIENTS", {"NAME", "KCAL"}, params, "ID");
@@ -113,7 +115,7 @@ StatusOr<size_t> DB::AddTableware(std::string name, uint32_t weight) {
         case StatusCode::INVALID_ARGUMENT:
             return {StatusCode::INVALID_ARGUMENT, "This pot already exists in the database."};
         default:
-            return {StatusCode::INTERNAL_ERROR, "DB request failed.Try again later."};
+            return {StatusCode::INTERNAL_ERROR, "DB request failed. Try again later."};
     }
 
     auto st = SelectId("TABLEWARE", {"NAME", "WEIGHT"}, params, "ID");
@@ -126,20 +128,17 @@ StatusOr<size_t> DB::AddTableware(std::string name, uint32_t weight) {
 StatusCode DB::Insert(std::string_view table, const std::vector<std::string_view>& fields,
                       const std::vector<BindParameter>& params) {
     if (params.size() % fields.size() != 0) {
-        std::cerr << "params.size() % fields.size() != 0: " << fields.size() << " " << params.size()
-                  << std::endl;
+        fmt::print(stderr, "params.size() % fields.size() != 0: {} {}\n", fields.size(),
+                   params.size());
         exit(1);
     }
 
-    std::stringstream names;
     std::stringstream params_set;
     params_set << "(";
     for (size_t idx = 0; idx < fields.size(); idx++) {
         if (idx > 0) {
-            names << ", ";
             params_set << ", ";
         }
-        names << fields[idx];
         params_set << "?";
     }
     params_set << ")";
@@ -153,30 +152,29 @@ StatusCode DB::Insert(std::string_view table, const std::vector<std::string_view
         binds << params_set_str;
     }
 
-    std::stringstream insert;
-    insert << "INSERT INTO " << table << "(" << names.str() << ") VALUES " << binds.str() << ";";
-    return Exec(insert.str(), params).Code();
+    std::string sql =
+        fmt::format("INSERT INTO {} ({}) VALUES {};", table, fmt::join(fields, ","), binds.str());
+    return Exec(sql, params).Code();
 }
 
 StatusOr<size_t> DB::SelectId(std::string_view table, const std::vector<std::string_view>& fields,
                               const std::vector<BindParameter>& params, std::string_view id_field) {
     if (params.size() != fields.size()) {
-        std::cerr << "params.size() != fields.size(): " << fields.size() << " " << params.size()
-                  << std::endl;
+        fmt::print(stderr, "params.size() != fields.size(): {} {}\n", fields.size(), params.size());
         exit(1);
     }
 
-    std::stringstream conds;
+    fmt::memory_buffer conds;
     for (size_t idx = 0; idx < fields.size(); idx++) {
         if (idx > 0) {
-            conds << " AND ";
+            fmt::format_to(conds, " AND ");
         }
-        conds << fields[idx] << " = ?";
+        fmt::format_to(conds, "{} = ?", fields[idx]);
     }
 
-    std::stringstream select_id;
-    select_id << "SELECT " << id_field << " FROM " << table << " WHERE " << conds.str() << ";";
-    auto res = Exec(select_id.str(), params);
+    std::string sql = fmt::format("SELECT {} FROM {} WHERE {};", id_field, table, conds.data());
+    auto res = Exec(sql, params);
+
     if (!res.Ok()) {
         return {res.Code(), std::move(res.Error())};
     }
@@ -186,8 +184,7 @@ StatusOr<size_t> DB::SelectId(std::string_view table, const std::vector<std::str
     }
 
     if (res.Value()[0].size() != 1) {
-        std::cerr << "'" << select_id.str() << "' returned " << res.Value()[0].size()
-                  << " columns.";
+        fmt::print(stderr, "'{}' returned {} columns\n", sql, res.Value()[0].size());
         exit(2);
     }
 
@@ -202,12 +199,12 @@ StatusOr<Ingredient> DB::GetProduct(size_t id) {
     }
 
     if (res.Value().empty()) {
-        return {StatusCode::NOT_FOUND, "Product with id=" + std::to_string(id) + " wasn't found."};
+        return {StatusCode::NOT_FOUND, fmt::format("Product with id={} wasn't found.", id)};
     }
 
     auto& row = res.Value()[0];
     if (row.size() != 2) {
-        std::cerr << "'" << sql << "' returned " << row.size() << " columns.";
+        fmt::print(stderr, "'{}' returned {} columns\n", sql, row.size());
         exit(2);
     }
 
@@ -226,7 +223,7 @@ StatusOr<std::vector<Ingredient>> DB::GetProducts() {
 
     for (auto& row : res.Value()) {
         if (row.size() != 3) {
-            std::cerr << "'" << sql << "' returned " << row.size() << " columns.";
+            fmt::print(stderr, "'{}' returned {} columns\n", sql, row.size());
             exit(2);
         }
 
@@ -248,7 +245,7 @@ StatusOr<std::vector<Tableware>> DB::GetTableware() {
 
     for (auto& row : res.Value()) {
         if (row.size() != 3) {
-            std::cerr << "'" << sql << "' returned " << row.size() << " columns.";
+            fmt::print(stderr, "'{}' returned {} columns\n", sql, row.size());
             exit(2);
         }
 
@@ -281,7 +278,7 @@ StatusOr<size_t> DB::CreateRecipe(const std::string& name, const std::string& de
             return {StatusCode::INVALID_ARGUMENT,
                     "A recipe with this name already exists in the database."};
         default:
-            return {StatusCode::INTERNAL_ERROR, "DB request failed.Try again later."};
+            return {StatusCode::INTERNAL_ERROR, "DB request failed. Try again later."};
     }
 
     auto st = SelectId("RECIPE", {"NAME", "DESC"}, {{name}, {description}}, "ID");
@@ -312,7 +309,7 @@ StatusOr<size_t> DB::CreateRecipe(const std::string& name, const std::string& de
             return {code, "Some of the ingredients don't exist in the database."};
         }
 
-        return {code, "DB request failed.Try again later."};
+        return {code, "DB request failed. Try again later."};
     }
 
     return StatusOr{recipe_id};
@@ -328,7 +325,7 @@ StatusOr<std::vector<RecipeHeader>> DB::GetRecipes() {
     std::vector<RecipeHeader> ret;
     for (auto& row : res.Value()) {
         if (row.size() != 2) {
-            std::cerr << "'" << sql << "' returned " << row.size() << " columns.";
+            fmt::print(stderr, "'{}' returned {} columns\n", sql, row.size());
             exit(2);
         }
 
@@ -348,12 +345,12 @@ StatusOr<FullRecipe> DB::GetRecipeInfo(size_t recipe_id) {
 
     if (desc.Value().empty()) {
         return {StatusCode::NOT_FOUND,
-                "No recipe with id=" + std::to_string(recipe_id) + " exists in the database."};
+                fmt::format("No recipe with id={} exists in the database.", recipe_id)};
     }
 
     auto& header_data = desc.Value()[0];
     if (header_data.size() != 2) {
-        std::cerr << "'" << sql << "' returned " << header_data.size() << " columns.";
+        fmt::print(stderr, "'{}' returned {} columns\n", sql, header_data.size());
         exit(2);
     }
 
@@ -370,7 +367,7 @@ StatusOr<FullRecipe> DB::GetRecipeInfo(size_t recipe_id) {
 
     for (const auto& row : ingredients.Value()) {
         if (row.size() != 2) {
-            std::cerr << "'" << sql << "' returned " << row.size() << " columns.";
+            fmt::print(stderr, "'{}' returned {} columns\n", sql, row.size());
             exit(2);
         }
 
@@ -388,7 +385,7 @@ StatusOr<std::vector<DB::DBRow>> DB::Exec(std::string_view sql,
     sqlite3_stmt* stmt = nullptr;
     int st = sqlite3_prepare_v2(db_, sql.data(), -1, &stmt, nullptr);
     if (st != SQLITE_OK || stmt == nullptr) {
-        std::cerr << "Prepare failed: " << st << " SQL: " << sql << std::endl;
+        fmt::print(stderr, "Prepare failed: {} SQL: {}\n", st, sql);
         return {ConvertSqliteToStatus(st), "sqlite3_prepare_v2 failed."};
     }
 
@@ -401,7 +398,7 @@ StatusOr<std::vector<DB::DBRow>> DB::Exec(std::string_view sql,
         }
 
         if (st != SQLITE_OK) {
-            std::cerr << "Bind failed: " << st << " SQL: " << sql << std::endl;
+            fmt::print(stderr, "Bind failed: {} SQL: {}\n", st, sql);
             return {ConvertSqliteToStatus(st), "sqlite3_bind failed."};
         }
     }
