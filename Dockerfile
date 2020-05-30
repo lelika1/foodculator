@@ -3,7 +3,7 @@ FROM alpine:latest as BASE
 RUN apk --no-cache add sqlite-dev libstdc++ zlib-dev openssl-dev curl-dev boost-dev
 
 FROM BASE as builder
-RUN apk --no-cache add build-base clang python cmake
+RUN apk --no-cache add build-base clang python3 cmake
 COPY . /src
 RUN mkdir /build \
  && cd /build \

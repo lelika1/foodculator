@@ -8,7 +8,7 @@ RUN apk --no-cache add \
     boost-dev \
     build-base \
     clang \
-    python \
+    python3 \
     cmake \
     git
 
