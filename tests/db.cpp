@@ -12,6 +12,7 @@ namespace {
 
 TEST(DB, EmptyDatabase) {
     auto db = DB::Create(":memory:");
+    ASSERT_TRUE(db);
 
     const size_t UNKNOWN_ID = 100;
 
@@ -47,6 +48,7 @@ TEST(DB, EmptyDatabase) {
 
 TEST(DB, AddDeleteProduct) {
     auto db = DB::Create(":memory:");
+    ASSERT_TRUE(db);
 
     std::vector<Ingredient> want = {
         {"milk", 48},
@@ -87,6 +89,7 @@ TEST(DB, AddDeleteProduct) {
 
 TEST(DB, GetProduct) {
     auto db = DB::Create(":memory:");
+    ASSERT_TRUE(db);
 
     std::string name = "milk";
     std::uint32_t kcal = 48;
@@ -108,6 +111,7 @@ TEST(DB, GetProduct) {
 
 TEST(DB, DeleteProduct_WithRecipe) {
     auto db = DB::Create(":memory:");
+    ASSERT_TRUE(db);
 
     auto milk_id = db->AddProduct("milk", 48).Value();
     auto flour_id = db->AddProduct("flour", 364).Value();
@@ -120,6 +124,7 @@ TEST(DB, DeleteProduct_WithRecipe) {
 
 TEST(DB, AddDeleteTableware) {
     auto db = DB::Create(":memory:");
+    ASSERT_TRUE(db);
 
     std::vector<Tableware> want = {
         {"wok", 1080},
@@ -159,6 +164,7 @@ TEST(DB, AddDeleteTableware) {
 
 TEST(DB, GetRecipeInfo) {
     auto db = DB::Create(":memory:");
+    ASSERT_TRUE(db);
 
     auto milk_id = db->AddProduct("milk", 48).Value();
     auto flour_id = db->AddProduct("flour", 364).Value();
@@ -185,6 +191,7 @@ TEST(DB, GetRecipeInfo) {
 
 TEST(DB, CreateRecipe_Duplicate) {
     auto db = DB::Create(":memory:");
+    ASSERT_TRUE(db);
 
     auto milk_id = db->AddProduct("milk", 48).Value();
     auto flour_id = db->AddProduct("flour", 364).Value();
@@ -196,6 +203,7 @@ TEST(DB, CreateRecipe_Duplicate) {
 
 TEST(DB, CreateRecipe_UnknownIngredient) {
     auto db = DB::Create(":memory:");
+    ASSERT_TRUE(db);
 
     auto milk_id = db->AddProduct("milk", 48).Value();
 
@@ -211,6 +219,7 @@ TEST(DB, CreateRecipe_UnknownIngredient) {
 
 TEST(DB, CreateDeleteRecipe) {
     auto db = DB::Create(":memory:");
+    ASSERT_TRUE(db);
 
     auto milk_id = db->AddProduct("milk", 48).Value();
     auto flour_id = db->AddProduct("flour", 364).Value();
