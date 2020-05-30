@@ -164,15 +164,18 @@ StatusOr<size_t> DB::SelectId(std::string_view table, const std::vector<std::str
         exit(1);
     }
 
-    fmt::memory_buffer conds;
+    fmt::memory_buffer buf;
+    fmt::format_to(buf, "SELECT {} FROM {} WHERE ", id_field, table);
     for (size_t idx = 0; idx < fields.size(); idx++) {
         if (idx > 0) {
-            fmt::format_to(conds, " AND ");
+            fmt::format_to(buf, " AND ");
         }
-        fmt::format_to(conds, "{} = ?", fields[idx]);
+        fmt::format_to(buf, "{} = ?", fields[idx]);
     }
+    fmt::format_to(buf, ";");
 
-    std::string sql = fmt::format("SELECT {} FROM {} WHERE {};", id_field, table, conds.data());
+    std::string sql = fmt::to_string(buf);
+
     auto res = Exec(sql, params);
 
     if (!res.Ok()) {

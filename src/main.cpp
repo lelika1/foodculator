@@ -305,7 +305,7 @@ int main(int argc, char** argv) {
             // This intent is not supported.
             return;
         }
-        res.set_content(RenderDialogflowResponse(text.data()), "text/json; charset=utf-8");
+        res.set_content(RenderDialogflowResponse(fmt::to_string(text)), "text/json; charset=utf-8");
     });
 
     std::string version = "UNKNOWN";
