@@ -16,6 +16,7 @@ add_subdirectory(util)
 
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_SOURCE_DIR}/lib")
 target_link_libraries(foodculator DbLib
+								  fmt
 								  UtilLib 
 								  Httplib 
 								  json11 

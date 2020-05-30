@@ -11,4 +11,4 @@ set_target_properties(DbLib
 
 include_directories("${PROJECT_SOURCE_DIR}/src" "${PROJECT_SOURCE_DIR}/lib")
 
-target_link_libraries(DbLib sqlite3 json11 UtilLib)
+target_link_libraries(DbLib fmt json11 sqlite3 UtilLib)

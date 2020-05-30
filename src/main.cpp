@@ -1,12 +1,11 @@
 #include <csignal>
 #include <fstream>
-#include <iostream>
-#include <sstream>
 #include <streambuf>
 #include <string>
 #include <unordered_map>
 
 #include "db/db.h"
+#include "fmt/format.h"
 #include "httplib.h"
 #include "json11/json11.hpp"
 #include "tgbot/tgbot.h"
@@ -63,15 +62,15 @@ int main(int argc, char** argv) {
     using foodculator::DB;
 
     if (argc != 3) {
-        std::cerr << "usage: " << argv[0] << " path_to_static_files path_to_database" << std::endl;
+        fmt::print(stderr, "usage: {} path_to_static_files path_to_database\n", argv[0]);
         return 1;
     }
 
-    std::cout << "Working with sqlite db in " << argv[2] << std::endl;
+    fmt::print("Working with sqlite db in {}\n", argv[2]);
 
     auto db = DB::Create(argv[2]);
     if (!db) {
-        std::cerr << "DB::Create(" << argv[2] << ") failed." << std::endl;
+        fmt::print(stderr, "DB::Create({}) failed.\n", argv[2]);
         return 1;
     }
 
@@ -276,10 +275,10 @@ int main(int argc, char** argv) {
         const std::string& query_text = query["queryText"].string_value();
         const std::string& intent_name = query["intent"]["displayName"].string_value();
 
-        std::cout << "[dialogflow] id=" << resp_id << " session=" << session
-                  << " query=" << query_text << " intent=" << intent_name << std::endl;
+        fmt::print("[dialogflow] id={} session={} query={} intent={}\n", resp_id, session,
+                   query_text, intent_name);
 
-        std::stringstream text;
+        fmt::memory_buffer text;
         if (intent_name == "ingredients") {
             auto products = db->GetProducts();
             if (!products.Ok()) {
@@ -287,9 +286,9 @@ int main(int argc, char** argv) {
                 return;
             }
 
-            text << "Наши ингредиенты:";
+            fmt::format_to(text, "Наши ингредиенты:");
             for (const auto& ingredient : products.Value()) {
-                text << "\n" << ingredient.name << " по " << ingredient.kcal << " калории,";
+                fmt::format_to(text, "\n{} по {} калории,", ingredient.name, ingredient.kcal);
             }
         } else if (intent_name == "pots") {
             auto tw = db->GetTableware();
@@ -298,15 +297,15 @@ int main(int argc, char** argv) {
                 return;
             }
 
-            text << "Наша посуда:";
+            fmt::format_to(text, "Наша посуда:");
             for (const auto& pot : tw.Value()) {
-                text << "\n" << pot.name << " по " << pot.weight << " грам,";
+                fmt::format_to(text, "\n{} по {} грам,", pot.name, pot.weight);
             }
         } else {
             // This intent is not supported.
             return;
         }
-        res.set_content(RenderDialogflowResponse(text.str()), "text/json; charset=utf-8");
+        res.set_content(RenderDialogflowResponse(fmt::to_string(text)), "text/json; charset=utf-8");
     });
 
     std::string version = "UNKNOWN";
@@ -325,24 +324,23 @@ int main(int argc, char** argv) {
         port = std::stoi(v);
     }
 
-    std::cout << "Foodculator version: " << version << std::endl;
-    std::cout << "Listening on http://localhost:" << port << std::endl;
+    fmt::print("Foodculator version: {}\n", version);
+    fmt::print("Listening on http://localhost:{}\n", port);
 
     server = &srv;
     std::signal(SIGTERM, signal_handler);
 
     srv.set_logger([](const httplib::Request& req, const httplib::Response& res) {
         if (res.status != 200) {
-            std::cerr << req.method << " " << req.path << ":\tcode=" << res.status
-                      << " content=" << res.body << std::endl;
+            fmt::print(stderr, "{} {}:\tcode={} content={}\n", req.method, req.path, res.status,
+                       res.body);
             return;
         }
 
-        std::cout << req.method << " " << req.path << ":\tsize=" << res.body.length() << "b"
-                  << std::endl;
+        fmt::print("{} {}:\tsize={}b\n", req.method, req.path, res.body.length());
     });
     srv.listen("0.0.0.0", port);
 
-    std::cout << "I'll be back!" << std::endl;
+    fmt::print("I'll be back!\n");
     return 0;
 }
