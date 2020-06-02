@@ -69,7 +69,7 @@
 
         <div>
             <span style="font-size: x-large;">Total weight:</span>
-            <input type="number" min="1" max="10000" value="1" id="totalWeight" oninput="calculate()">
+            <input type="number" min="1" max="10000" value="1" id="totalWeight" oninput="onRecipeChange()">
             <label for="totalWeight">grams</label>
         </div>
         <br>
@@ -124,7 +124,6 @@
         function loadData() {
             loadProducts(onProductsLoad);
             loadTableware();
-            calculate();
         }
 
         function loadProducts(callback) {
@@ -152,6 +151,7 @@
             sessionStorage.removeItem("allIngredients");
 
             if (!recipe) {
+                onRecipeChange();
                 return;
             }
 
@@ -162,7 +162,7 @@
             });
 
             recipe.forEach(ingr => addNextIngredientForm(ingr.id, ingr.weight));
-            calculate();
+            onRecipeChange();
         }
 
         function addItemToTableware(weight, name, text, checked = false) {
@@ -171,7 +171,7 @@
                 .attr('name', name)
                 .attr('checked', checked)
                 .attr('id', id)
-                .attr('onclick', 'calculate()')
+                .attr('onclick', 'onRecipeChange()')
                 .val(weight);
 
             $('#tableware')
@@ -223,11 +223,12 @@
             }
 
             addNextIngredientForm($(found[0]).attr("id"), grams);
+            onRecipeChange();
         }
 
         function addNextIngredientForm(id, weight) {
             let edit = $('<input type="number" min=0 max=10000>')
-                .val(weight).attr("oninput", "calculate()");
+                .val(weight).attr("oninput", "onRecipeChange()");
 
             $('#recipe tr:last').before($("<tr>")
                 .append($("<td>").text(allProducts[id].name))
@@ -243,14 +244,13 @@
                 }
             });
 
-            sessionStorage.setItem("allIngredients", JSON.stringify(allIngredients));
-
             $("#gram").val(0);
             $("#getIngredient").val('').focus();
-            calculate();
         }
 
-        function calculate() {
+        function onRecipeChange() {
+            sessionStorage.setItem("allIngredients", JSON.stringify(allIngredients));
+
             if (allIngredients.length == 0) {
                 $("#textResult").text("There is no ingredients yet.")
                     .attr("style", "color:red;");
