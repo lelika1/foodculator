@@ -147,19 +147,13 @@
                 allProducts[pr.id] = { kcal: pr.kcal, name: name, id: pr.id };
             });
 
-            let recipe = JSON.parse(sessionStorage.getItem("allIngredients"));
-            sessionStorage.removeItem("allIngredients");
-
-            if (!recipe) {
-                onRecipeChange();
-                return;
-            }
-
-            recipe.forEach(ingr => {
+            let recipe = JSON.parse(sessionStorage.getItem("allIngredients")) || [];
+            for (let ingr of recipe) {
                 if (!(ingr.id in allProducts)) {
+                    onRecipeChange();
                     return;
                 }
-            });
+            }
 
             recipe.forEach(ingr => addNextIngredientForm(ingr.id, ingr.weight));
             onRecipeChange();
@@ -240,7 +234,7 @@
                 weight: edit,
 
                 toJSON() {
-                    return { "id": id, "weight": $(edit).val() };
+                    return { "id": this.id, "weight": $(this.weight).val() };
                 }
             });
 
