@@ -292,6 +292,10 @@ StatusOr<size_t> DB::CreateRecipe(const std::string& name, const std::string& de
 
     const size_t recipe_id = st.Value();
 
+    if (ingredients.empty()) {
+        return StatusOr{recipe_id};
+    }
+
     std::vector<BindParameter> params;
     params.reserve(ingredients.size() * 3);
     for (const auto& [id, weight] : ingredients) {

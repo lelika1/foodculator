@@ -43,24 +43,43 @@
 
 <body onload="loadData()">
     <div id="left">
-        <h1>Create a new recipe</h1>
         <table id="recipe" style="width:80%">
-            <tr>
-                <th>Ingredient</th>
-                <th>Amount</th>
-            </tr>
-            <tr>
-                <td>
-                    <input list="ingredients" id="getIngredient" placeholder="Choose an ingredient" autofocus
-                        onkeydown="callOnEnter(setFocusOnNextInput, this)">
+            <thead>
+                <tr>
+                    <td colspan="2">
+                        <select id="allRecipes" onchange="loadRecipe()" style="font-size: large; width:100%">
+                            <option value="default" style="font-size: large;" disabled selected>
+                                Select a recipe
+                            </option>
+                        </select>
+                    </td>
+                </tr>
 
-                    <datalist id="ingredients"></datalist>
-                </td>
-                <td>
-                    <input type="number" min="0" max="10000" value="0" id="gram"
-                        onkeydown="callOnEnter(addNextIngredient)">
-                </td>
-            </tr>
+                <tr>
+                    <td>
+                        <span style="font-size: x-large;">... or create a new one</span>
+                    </td>
+                </tr>
+
+                <tr>
+                    <th>Ingredient</th>
+                    <th>Amount</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr>
+                    <td>
+                        <input list="ingredients" id="getIngredient" placeholder="Choose an ingredient" autofocus
+                            onkeydown="callOnEnter(setFocusOnNextInput, this)">
+                        <datalist id="ingredients"></datalist>
+                    </td>
+                    <td>
+                        <input type="number" min="0" max="10000" value="0" id="gram"
+                            onkeydown="callOnEnter(addNextIngredient)">
+                    </td>
+                </tr>
+            </tbody>
         </table><br>
 
         <span style="font-size: x-large;">Choose a &#127858;:</span>
@@ -114,7 +133,18 @@
 
             <label id="twNameResponse" style="font-weight: bold; color: green; font-style: italic"></label>
             <label id="newTwResponse"></label>
-        </div>
+        </div><br><br>
+
+        <div id="saveRecipeDiv">
+            <span style="font-size: large;">Recipe name:</span><br>
+            <input type="text" id="recipeName" placeholder="Input recipe name" style="width:60%"> <br><br>
+            <span style="font-size: large;">Description:</span><br>
+            <textarea rows="6" id="recipeDescription" style="width:60%"
+                placeholder="Input recipe description..."></textarea><br>
+            <input type="submit" value="Save a recipe" onclick="saveRecipe()">
+
+            <label id="saveRecipeResponse" style="font-weight: bold; color: green; font-style: italic"></label>
+        </div><br><br>
     </div>
 
     <script>
@@ -124,10 +154,11 @@
         function loadData() {
             loadProducts(onProductsLoad);
             loadTableware();
+            loadRecipes();
         }
 
         function loadProducts(callback) {
-            var xhttp = new XMLHttpRequest();
+            let xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
                     callback(JSON.parse(this.responseText));
@@ -177,7 +208,7 @@
         function loadTableware() {
             addItemToTableware(0, 'tableware', "No pot", true);
 
-            var xhttp = new XMLHttpRequest();
+            let xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
                 if (this.readyState == 4 && this.status == 200) {
                     JSON.parse(this.responseText).forEach(tw => {
@@ -224,7 +255,7 @@
             let edit = $('<input type="number" min=0 max=10000>')
                 .val(weight).attr("oninput", "onRecipeChange()");
 
-            $('#recipe tr:last').before($("<tr>")
+            $('#recipe tbody tr:last').before($("<tr>")
                 .append($("<td>").text(allProducts[id].name))
                 .append($("<td>").append(edit))
             );
@@ -234,7 +265,7 @@
                 weight: edit,
 
                 toJSON() {
-                    return { "id": this.id, "weight": $(this.weight).val() };
+                    return { "id": parseInt(this.id), "weight": parseInt($(this.weight).val()) };
                 }
             });
 
@@ -284,7 +315,7 @@
         }
 
         function addNewTw() {
-            var xhttp = new XMLHttpRequest();
+            let xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
                 if (this.readyState == 4) {
                     if (this.status == 200) {
@@ -313,7 +344,7 @@
         }
 
         function addNewProduct() {
-            var xhttp = new XMLHttpRequest();
+            let xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
                 if (this.readyState == 4) {
                     if (this.status == 200) {
@@ -357,8 +388,93 @@
         }
 
         function reset() {
-            sessionStorage.removeItem("allIngredients");
-            location.reload();
+            allIngredients = [];
+
+            $("#recipe tbody").find("tr:not(:last)").remove();
+            $("#recipeName").val("");
+            $("#recipeDescription").val("");
+            $("#totalWeight").val("1");
+            $("#getIngredient").val("");
+            $("#allRecipes").val("default");
+            onRecipeChange();
+        }
+
+        function loadRecipes() {
+            let xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    JSON.parse(this.responseText).forEach(recipe =>
+                        $("#allRecipes").append($("<option>").text(recipe.name)
+                            .attr('value', recipe.id)
+                        )
+                    );
+                };
+            }
+
+            xhttp.open("GET", "/get_recipes", true);
+            xhttp.send();
+        }
+
+        let prevSelectedRecipeValue = "default";
+
+        function loadRecipe() {
+            let selected = $("#allRecipes").children("option:selected");
+            if (!confirm(`Do you want to load the recipe '${selected.text()}'?`)) {
+                $("#allRecipes").val(prevSelectedRecipeValue);
+                return;
+            }
+
+            prevSelectedRecipeValue = selected.val();
+            let xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    reset();
+
+                    let recipe = JSON.parse(this.responseText);
+                    $("#recipeName").val(recipe.header.name);
+                    $("#recipeDescription").val(recipe.description);
+                    for (let ingr of recipe.ingredients) {
+                        if (!(ingr.id in allProducts)) {
+                            onRecipeChange();
+                            return;
+                        }
+                    }
+
+                    recipe.ingredients.forEach(ingr => addNextIngredientForm(ingr.id, ingr.weight));
+                    onRecipeChange();
+                    $("#allRecipes").val(selected.val());
+                };
+            }
+
+            xhttp.open("GET", `/recipe/${selected.val()}`, true);
+            xhttp.send();
+        }
+
+        function saveRecipe() {
+            let name = $("#recipeName").val();
+
+            if (!confirm(`Do you want to save recipe '${name}'?`)) {
+                return;
+            }
+
+            let descr = $("#recipeDescription").val();
+
+            let xhttp = new XMLHttpRequest();
+            xhttp.onreadystatechange = function () {
+                if (this.readyState == 4 && this.status == 200) {
+                    reset();
+                    $("#saveRecipeResponse").text("The recipe was saved.").attr("style", "color:green;");
+                } else {
+                    $("#saveRecipeResponse").text(this.responseText).attr("style", "color:red;");
+                }
+            };
+
+            xhttp.open("POST", "/create_recipe", true);
+            xhttp.send(JSON.stringify({
+                "header": { "name": name },
+                "description": descr,
+                "ingredients": allIngredients,
+            }));
         }
 
     </script>
