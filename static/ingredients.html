@@ -33,8 +33,7 @@
         </tr>
         <tr>
             <td>
-                <input type="text" id="product" placeholder="product's name"
-                    onkeydown="callOnEnter(setFocusOnNextInput, this)">
+                <input type="text" id="product" placeholder="product's name" onkeydown="callOnEnter(focusOn, 'kcal')">
             </td>
             <td>
                 <input type="number" min="0" max="10000" id="kcal" onkeydown="callOnEnter(addProduct)"
@@ -84,7 +83,14 @@
         let dltBtn = $("<input type=submit value=Delete>")
             .attr("dbId", dbId)
             .attr("desc", `(${name}, ${kcal})`)
-            .attr("onclick", " deleteProduct($(this))");
+            .click(function () {
+                deleteProductRequest($(this).attr("desc"), $(this).attr("dbId"), response => {
+                    $("#deleteResponse").text(response);
+                    $(this).closest("tr").remove();
+                }, response => {
+                    $("#deleteResponse").text(response);
+                });
+            });
 
         $('#ingredients').append($("<tr>")
             .append($("<td>").text(name))
@@ -105,15 +111,6 @@
         }, err => {
             $("#prNameResponse").text("");
             $("#response").text(err).attr("style", "color:red;");
-        });
-    }
-
-    function deleteProduct(btn) {
-        deleteProductRequest(btn.attr("desc"), btn.attr("dbId"), response => {
-            $("#deleteResponse").text(response);
-            btn.closest("tr").remove();
-        }, response => {
-            $("#deleteResponse").text(response);
         });
     }
 

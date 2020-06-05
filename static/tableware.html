@@ -33,8 +33,7 @@
         </tr>
         <tr>
             <td>
-                <input type="text" id="name" placeholder="pot's name"
-                    onkeydown="callOnEnter(setFocusOnNextInput, this)">
+                <input type="text" id="name" placeholder="pot's name" onkeydown="callOnEnter(focusOn, 'weight')">
             </td>
             <td>
                 <input type="number" min="0" max="10000" id="weight" onkeydown="callOnEnter(addTableware)"
@@ -85,7 +84,14 @@
         let dltBtn = $("<input type=submit value=Delete>")
             .attr("dbId", dbId)
             .attr("desc", `(${name}, ${weight})`)
-            .attr("onclick", " deleteTableware($(this))");
+            .click(function () {
+                deleteTablewareRequest($(this).attr("desc"), $(this).attr("dbId"), response => {
+                    $("#deleteResponse").text(response);
+                    $(this).closest("tr").remove();
+                }, response => {
+                    $("#deleteResponse").text(response);
+                });
+            });
 
         $('#tableware').append($("<tr>")
             .append($("<td>").text(name))
@@ -106,15 +112,6 @@
         }, err => {
             $("#twNameResponse").text("");
             $("#response").text(err).attr("style", "color:red;");
-        });
-    }
-
-    function deleteTableware(btn) {
-        deleteTablewareRequest(btn.attr("desc"), btn.attr("dbId"), response => {
-            $("#deleteResponse").text(response);
-            btn.closest("tr").remove();
-        }, response => {
-            $("#deleteResponse").text(response);
         });
     }
 </script>
