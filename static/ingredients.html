@@ -4,6 +4,9 @@
     <title>Foodculator 1.0</title>
     <link rel="icon" href="/static/icon.svg">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/httprequests.js"></script>
+    <script type="text/javascript" src="/static/common.js"></script>
+
     <style>
         th,
         td {
@@ -21,7 +24,7 @@
     </style>
 </head>
 
-<body onload="getProductsFunction()">
+<body onload="getProducts()">
     <table id="ingredients" style="width:50%">
         <tr>
             <td colspan="2">
@@ -67,25 +70,13 @@
     <label id="deleteResponse" style="color:red;"></label>
 </body>
 
+
 <script>
-    function callOnEnter(fn, ...params) {
-        if (event.key === 'Enter') {
-            fn(params);
-        }
-    }
-
-    function setFocusOnNextInput(current) {
-        if (current.length != 1) {
-            return;
-        }
-        $(":input:eq(" + ($(":input").index(current[0]) + 1) + ")").focus();
-    }
-
     function addProductToTable(name, kcal, dbId) {
         let dltBtn = $("<input type=submit value=Delete>")
             .attr("dbId", dbId)
             .attr("desc", `(${name}, ${kcal})`)
-            .attr("onclick", " DeleteProduct($(this))");
+            .attr("onclick", " deleteProduct($(this))");
 
         $('#ingredients').append($("<tr>")
             .append($("<td>").text(name))
@@ -95,60 +86,35 @@
     }
 
     function addProduct() {
-        var xhttp = new XMLHttpRequest();
-        xhttp.onreadystatechange = function () {
-            if (this.readyState == 4) {
-                if (this.status == 200) {
-                    addProductToTable($("#product").val(), $("#kcal").val(), parseInt(this.response));
+        addProductRequest($("#product").val(), parseInt($("#kcal").val()), id => {
+            addProductToTable($("#product").val(), $("#kcal").val(), id);
 
-                    $("#prNameResponse").text($("#product").val());
-                    $("#response").text(" successfully added.").attr("style", "color:green;");
+            $("#prNameResponse").text($("#product").val());
+            $("#response").text(" successfully added.").attr("style", "color:green;");
 
-                    $("#kcal").val("");
-                    $("#product").val('').focus();
-                } else {
-                    $("#prNameResponse").text("");
-                    $("#response").text(this.responseText).attr("style", "color:red;");
-                }
-            }
-        };
-
-        xhttp.open("POST", "/add_ingredient", true);
-        xhttp.send(JSON.stringify({
-            "product": $("#product").val(),
-            "kcal": parseInt($("#kcal").val())
-        }));
+            $("#kcal").val("");
+            $("#product").val('').focus();
+        }, err => {
+            $("#prNameResponse").text("");
+            $("#response").text(err).attr("style", "color:red;");
+        });
     }
 
-    function getProductsFunction() {
-        var xhttp = new XMLHttpRequest();
-        xhttp.onreadystatechange = function () {
-            if (this.readyState == 4 && this.status == 200) {
-                JSON.parse(this.responseText).forEach(pr =>
-                    addProductToTable(pr.name, pr.kcal, pr.id)
-                );
-            }
-        }
-
-        xhttp.open("GET", "/get_ingredients", true);
-        xhttp.send();
+    function getProducts() {
+        getProductsRequest(products => {
+            products.forEach(pr =>
+                addProductToTable(pr.name, pr.kcal, pr.id)
+            );
+        });
     }
 
-    function DeleteProduct(btn) {
-        if (!confirm(`Do you want to delete the ingredient ${btn.attr("desc")}?`)) {
-            return;
-        }
-
-        var xhttp = new XMLHttpRequest();
-        xhttp.onreadystatechange = function () {
-            $("#deleteResponse").text(this.response);
-            if (this.readyState == 4 && this.status == 200) {
-                btn.closest("tr").remove();
-            }
-        }
-
-        xhttp.open("DELETE", `/ingredient/${btn.attr("dbId")}`, true);
-        xhttp.send();
+    function deleteProduct(btn) {
+        deleteProductRequest(btn.attr("desc"), btn.attr("dbId"), response => {
+            $("#deleteResponse").text(response);
+            btn.closest("tr").remove();
+        }, response => {
+            $("#deleteResponse").text(response);
+        });
     }
 
 </script>

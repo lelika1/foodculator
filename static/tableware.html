@@ -4,6 +4,8 @@
     <title>Foodculator 1.0</title>
     <link rel="icon" href="/static/icon.svg">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/httprequests.js"></script>
+    <script type="text/javascript" src="/static/common.js"></script>
 
     <style>
         th,
@@ -71,24 +73,11 @@
 
 
 <script>
-    function callOnEnter(fn, ...params) {
-        if (event.key === 'Enter') {
-            fn(params);
-        }
-    }
-
-    function setFocusOnNextInput(current) {
-        if (current.length != 1) {
-            return;
-        }
-        $(":input:eq(" + ($(":input").index(current[0]) + 1) + ")").focus();
-    }
-
     function addPotToTable(name, weight, dbId) {
         let dltBtn = $("<input type=submit value=Delete>")
             .attr("dbId", dbId)
             .attr("desc", `(${name}, ${weight})`)
-            .attr("onclick", " DeletePot($(this))");
+            .attr("onclick", " deleteTableware($(this))");
 
         $('#tableware').append($("<tr>")
             .append($("<td>").text(name))
@@ -98,61 +87,35 @@
     }
 
     function addTableware() {
-        var xhttp = new XMLHttpRequest();
-        xhttp.onreadystatechange = function () {
-            if (this.readyState == 4) {
-                if (this.status == 200) {
-                    addPotToTable($("#name").val(), $("#weight").val(), parseInt(this.response));
+        addTablewareRequest($("#name").val(), parseInt($("#weight").val()), id => {
+            addPotToTable($("#name").val(), $("#weight").val(), id);
 
-                    $("#twNameResponse").text($("#name").val());
-                    $("#response").text(" successfully added.").attr("style", "color:green;");
+            $("#twNameResponse").text($("#name").val());
+            $("#response").text(" successfully added.").attr("style", "color:green;");
 
-                    $("#weight").val(0);
-                    $("#name").val('').focus();
-                } else {
-                    $("#twNameResponse").text("");
-                    $("#response").text(this.responseText).attr("style", "color:red;");
-                }
-            }
-        };
-
-        xhttp.open("POST", "/add_tableware", true);
-        xhttp.send(JSON.stringify({
-            "name": $("#name").val(),
-            "weight": parseInt($("#weight").val())
-        }));
+            $("#weight").val(0);
+            $("#name").val('').focus();
+        }, err => {
+            $("#twNameResponse").text("");
+            $("#response").text(err).attr("style", "color:red;");
+        });
     }
 
     function getTableware() {
-        var xhttp = new XMLHttpRequest();
-        xhttp.onreadystatechange = function () {
-            if (this.readyState == 4 && this.status == 200) {
-                JSON.parse(this.responseText).forEach(tw =>
-                    addPotToTable(tw.name, tw.weight, tw.id)
-                );
-            }
-        }
-
-        xhttp.open("GET", "/get_tableware", true);
-        xhttp.send();
+        getTablewareRequest(tableware => {
+            tableware.forEach(tw =>
+                addPotToTable(tw.name, tw.weight, tw.id)
+            );
+        });
     }
 
-
-    function DeletePot(btn) {
-        if (!confirm(`Do you want to delete the pot ${btn.attr("desc")}?`)) {
-            return;
-        }
-
-        var xhttp = new XMLHttpRequest();
-        xhttp.onreadystatechange = function () {
-            $("#deleteResponse").text(this.response);
-            if (this.readyState == 4 && this.status == 200) {
-                btn.closest("tr").remove();
-            }
-        }
-
-        xhttp.open("DELETE", `/tableware/${btn.attr("dbId")}`, true);
-        xhttp.send();
+    function deleteTableware(btn) {
+        deleteTablewareRequest(btn.attr("desc"), btn.attr("dbId"), response => {
+            $("#deleteResponse").text(response);
+            btn.closest("tr").remove();
+        }, response => {
+            $("#deleteResponse").text(response);
+        });
     }
 </script>
 

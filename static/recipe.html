@@ -4,6 +4,8 @@
     <title>Foodculator 1.0</title>
     <link rel="icon" href="/static/icon.svg">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/httprequests.js"></script>
+    <script type="text/javascript" src="/static/common.js"></script>
 
     <style>
         th,
@@ -146,338 +148,261 @@
             <label id="saveRecipeResponse" style="font-weight: bold; color: green; font-style: italic"></label>
         </div><br><br>
     </div>
+</body>
 
-    <script>
-        var allProducts = [];
-        var allIngredients = [];
 
-        function loadData() {
-            loadProducts(onProductsLoad);
-            loadTableware();
-            loadRecipes();
+<script>
+    var allProducts = [];
+    var allIngredients = [];
+
+    function loadData() {
+        getProductsRequest(onProductsLoad);
+        loadTableware();
+        loadRecipes();
+    }
+
+    function onProductsLoad(products) {
+        products.forEach(pr => {
+            let name = `${pr.name} ${pr.kcal} kcal`;
+            $("#ingredients").append($("<option>").text(name)
+                .attr('kcal', pr.kcal).attr('id', pr.id)
+            );
+            allProducts[pr.id] = { kcal: pr.kcal, name: name, id: pr.id };
+        });
+
+        let recipe = JSON.parse(sessionStorage.getItem("allIngredients")) || [];
+        for (let ingr of recipe) {
+            if (!(ingr.id in allProducts)) {
+                onRecipeChange();
+                return;
+            }
         }
 
-        function loadProducts(callback) {
-            let xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function () {
-                if (this.readyState == 4 && this.status == 200) {
-                    callback(JSON.parse(this.responseText));
-                }
-            };
+        recipe.forEach(ingr => addNextIngredientForm(ingr.id, ingr.weight));
+        onRecipeChange();
+    }
 
-            xhttp.open("GET", "/get_ingredients", true);
-            xhttp.send();
-        }
+    function addItemToTableware(weight, name, text, checked = false) {
+        let id = `pod${$("input[name='tableware']").length}`
+        let radio = $('<input type=radio>')
+            .attr('name', name)
+            .attr('checked', checked)
+            .attr('id', id)
+            .attr('onclick', 'onRecipeChange()')
+            .val(weight);
 
-        function onProductsLoad(products) {
-            products.forEach(pr => {
-                let name = `${pr.name} ${pr.kcal} kcal`;
-                $("#ingredients").append($("<option>").text(name)
-                    .attr('kcal', pr.kcal).attr('id', pr.id)
-                );
-                allProducts[pr.id] = { kcal: pr.kcal, name: name, id: pr.id };
+        $('#tableware')
+            .append(radio)
+            .append($("<label>").attr('for', id).text(text))
+            .append("<br>");
+    }
+
+    function loadTableware() {
+        addItemToTableware(0, 'tableware', "No pot", true);
+        getTablewareRequest(tableware => {
+            tableware.forEach(tw => {
+                addItemToTableware(tw.weight, 'tableware', `${tw.name} ${tw.weight} g`);
             });
+        });
+    }
 
-            let recipe = JSON.parse(sessionStorage.getItem("allIngredients")) || [];
-            for (let ingr of recipe) {
+    function addNextIngredient() {
+        let grams = $("#gram").val();
+        if (grams == 0) {
+            return;
+        }
+
+        var product = $("#getIngredient").val();
+        var found = $('#ingredients option').filter((idx, el) => el.value === product);
+        if (found.length == 0) {
+            return;
+        }
+
+        addNextIngredientForm($(found[0]).attr("id"), grams);
+        onRecipeChange();
+    }
+
+    function addNextIngredientForm(id, weight) {
+        let edit = $('<input type="number" min=0 max=10000>')
+            .val(weight).attr("oninput", "onRecipeChange()");
+
+        $('#recipe tbody tr:last').before($("<tr>")
+            .append($("<td>").text(allProducts[id].name))
+            .append($("<td>").append(edit))
+        );
+
+        allIngredients.push({
+            id: id,
+            weight: edit,
+
+            toJSON() {
+                return { "id": parseInt(this.id), "weight": parseInt($(this.weight).val()) };
+            }
+        });
+
+        $("#gram").val(0);
+        $("#getIngredient").val('').focus();
+    }
+
+    function onRecipeChange() {
+        sessionStorage.setItem("allIngredients", JSON.stringify(allIngredients));
+
+        if (allIngredients.length == 0) {
+            $("#textResult").text("There is no ingredients yet.")
+                .attr("style", "color:red;");
+            $("#calcResult").text("");
+            $("#finalKcalMsg").text("");
+            $("#totalWeightMsg").text("");
+            return;
+        }
+
+        var totalEnergy = 0.0;
+        var result = [];
+        allIngredients.forEach(ingr => {
+            let weight = ingr.weight.val();
+            let kcal = allProducts[ingr.id].kcal;
+            totalEnergy += kcal * weight / 100.0;
+            result.push(`${kcal}*${weight / 100.0}`);
+        });
+
+        let totalWeight = parseInt($("#totalWeight").val());
+        let twWeight = parseInt($("input[name='tableware']:checked").val());
+        if ($("#totalWeight").val() == "" || totalWeight <= twWeight) {
+            $("#textResult").text("The total weight should be greater than the pot's weight.")
+                .attr("style", "color:red;");
+            $("#calcResult").text("");
+            $("#finalKcalMsg").text("");
+            $("#totalWeightMsg").text("");
+            return;
+        }
+
+        totalEnergy = totalEnergy * 100 / (totalWeight - twWeight);
+        $("#calcResult").text("Final energy is ");
+        $("#finalKcalMsg").text(`${totalEnergy.toFixed(2)} kcal per 100 g.`).attr("style", "font-weight:bold");
+        $("#totalWeightMsg").text(`Total weight is ${totalWeight - twWeight} g`);
+
+        var text = `(${result.join(" + ")}) * 100 / (${totalWeight}-${twWeight}) = ${totalEnergy}`;
+        $("#textResult").text(text).attr("style", "color:black;");
+    }
+
+    function addNewTw() {
+        addTablewareRequest($("#newTwName").val(), parseInt($("#newTwWeight").val()), id => {
+            let weight = $("#newTwWeight").val();
+            let name = $("#newTwName").val();
+            addItemToTableware(weight, 'tableware',
+                `${$("#newTwName").val()} ${$("#newTwWeight").val()} g`);
+
+            $("#twNameResponse").text($("#newTwName").val());
+            $("#newTwResponse").text(" successfully added.").attr("style", "color:green;");
+
+            $("#newTwWeight").val(0);
+            $("#newTwName").val('').focus();
+        }, err => {
+            $("#twNameResponse").text("");
+            $("#newTwResponse").text(err).attr("style", "color:red;");
+        });
+    }
+
+    function addNewProduct() {
+        addProductRequest($("#product").val(), parseInt($("#kcal").val()), id => {
+            let kcal = $("#kcal").val();
+            let name = `${$("#product").val()} ${kcal} kcal`;
+            allProducts[id] = { kcal: kcal, name: name, id: id };
+
+            $("#ingredients").append($("<option>")
+                .attr('kcal', kcal)
+                .attr('id', id)
+                .text(name));
+            $("#prNameResponse").text($("#product").val());
+            $("#newProductResponse").text(" successfully added.").attr("style", "color:green;");
+
+            $("#kcal").val(0);
+            $("#product").val('').focus();
+        }, err => {
+            $("#prNameResponse").text("");
+            $("#newProductResponse").text(err).attr("style", "color:red;");
+        });
+    }
+
+    function hideDiv(divName) {
+        var div = $(`#${divName} `);
+        if (div.css("display") === "none") {
+            div.attr("style", "display:block");
+            div.find('input').first().focus();
+        } else {
+            div.attr("style", "display:none");
+            $("#getIngredient").focus();
+        }
+    }
+
+    function reset() {
+        allIngredients = [];
+
+        $("#recipe tbody").find("tr:not(:last)").remove();
+        $("#recipeName").val("");
+        $("#recipeDescription").val("");
+        $("#totalWeight").val("1");
+        $("#getIngredient").val("");
+        $("#allRecipes").val("default");
+        onRecipeChange();
+    }
+
+    function loadRecipes() {
+        getRecipesRequest(recipes => {
+            recipes.forEach(recipe =>
+                $("#allRecipes").append($("<option>").text(recipe.name)
+                    .attr('value', recipe.id)
+                )
+            );
+        });
+    }
+
+    let prevSelectedRecipeValue = "default";
+
+    function loadRecipe() {
+        let selected = $("#allRecipes").children("option:selected");
+        if (!confirm(`Do you want to load the recipe '${selected.text()}' ? `)) {
+            $("#allRecipes").val(prevSelectedRecipeValue);
+            return;
+        }
+
+        prevSelectedRecipeValue = selected.val();
+        getRecipeRequest(selected.val(), recipe => {
+            reset();
+
+            $("#recipeName").val(recipe.header.name);
+            $("#recipeDescription").val(recipe.description);
+            for (let ingr of recipe.ingredients) {
                 if (!(ingr.id in allProducts)) {
                     onRecipeChange();
                     return;
                 }
             }
 
-            recipe.forEach(ingr => addNextIngredientForm(ingr.id, ingr.weight));
+            recipe.ingredients.forEach(ingr => addNextIngredientForm(ingr.id, ingr.weight));
             onRecipeChange();
+            $("#allRecipes").val(selected.val());
+        });
+    }
+
+    function saveRecipe() {
+        let name = $("#recipeName").val();
+
+        if (!confirm(`Do you want to save recipe '${name}' ?`)) {
+            return;
         }
 
-        function addItemToTableware(weight, name, text, checked = false) {
-            let id = `pod${$("input[name='tableware']").length}`
-            let radio = $('<input type=radio>')
-                .attr('name', name)
-                .attr('checked', checked)
-                .attr('id', id)
-                .attr('onclick', 'onRecipeChange()')
-                .val(weight);
+        let descr = $("#recipeDescription").val();
 
-            $('#tableware')
-                .append(radio)
-                .append($("<label>").attr('for', id).text(text))
-                .append("<br>");
-        }
+        addRecipeRequest(name, descr, allIngredients, id => {
+            reset();
+            $("#allRecipes").append($("<option>").text(name).attr('value', id))
+            $("#saveRecipeResponse").text("The recipe was saved.").attr("style", "color:green;");
+        }, err => {
+            $("#saveRecipeResponse").text(err).attr("style", "color:red;");
+        });
+    }
 
-        function loadTableware() {
-            addItemToTableware(0, 'tableware', "No pot", true);
-
-            let xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function () {
-                if (this.readyState == 4 && this.status == 200) {
-                    JSON.parse(this.responseText).forEach(tw => {
-                        let text = `${tw.name} ${tw.weight} g`;
-                        addItemToTableware(tw.weight, 'tableware', text);
-                    });
-                }
-            };
-
-            xhttp.open("GET", "/get_tableware", true);
-            xhttp.send();
-        }
-
-        function callOnEnter(fn, ...params) {
-            if (event.key === 'Enter') {
-                fn(params);
-            }
-        }
-
-        function setFocusOnNextInput(current) {
-            if (current.length != 1) {
-                return;
-            }
-            $(":input:eq(" + ($(":input").index(current[0]) + 1) + ")").focus();
-        }
-
-        function addNextIngredient() {
-            let grams = $("#gram").val();
-            if (grams == 0) {
-                return;
-            }
-
-            var product = $("#getIngredient").val();
-            var found = $('#ingredients option').filter((idx, el) => el.value === product);
-            if (found.length == 0) {
-                return;
-            }
-
-            addNextIngredientForm($(found[0]).attr("id"), grams);
-            onRecipeChange();
-        }
-
-        function addNextIngredientForm(id, weight) {
-            let edit = $('<input type="number" min=0 max=10000>')
-                .val(weight).attr("oninput", "onRecipeChange()");
-
-            $('#recipe tbody tr:last').before($("<tr>")
-                .append($("<td>").text(allProducts[id].name))
-                .append($("<td>").append(edit))
-            );
-
-            allIngredients.push({
-                id: id,
-                weight: edit,
-
-                toJSON() {
-                    return { "id": parseInt(this.id), "weight": parseInt($(this.weight).val()) };
-                }
-            });
-
-            $("#gram").val(0);
-            $("#getIngredient").val('').focus();
-        }
-
-        function onRecipeChange() {
-            sessionStorage.setItem("allIngredients", JSON.stringify(allIngredients));
-
-            if (allIngredients.length == 0) {
-                $("#textResult").text("There is no ingredients yet.")
-                    .attr("style", "color:red;");
-                $("#calcResult").text("");
-                $("#finalKcalMsg").text("");
-                $("#totalWeightMsg").text("");
-                return;
-            }
-
-            var totalEnergy = 0.0;
-            var result = [];
-            allIngredients.forEach(ingr => {
-                let weight = ingr.weight.val();
-                let kcal = allProducts[ingr.id].kcal;
-                totalEnergy += kcal * weight / 100.0;
-                result.push(`${kcal}*${weight / 100.0}`);
-            });
-
-            let totalWeight = parseInt($("#totalWeight").val());
-            let twWeight = parseInt($("input[name='tableware']:checked").val());
-            if ($("#totalWeight").val() == "" || totalWeight <= twWeight) {
-                $("#textResult").text("The total weight should be greater than the pot's weight.")
-                    .attr("style", "color:red;");
-                $("#calcResult").text("");
-                $("#finalKcalMsg").text("");
-                $("#totalWeightMsg").text("");
-                return;
-            }
-
-            totalEnergy = totalEnergy * 100 / (totalWeight - twWeight);
-            $("#calcResult").text("Final energy is ");
-            $("#finalKcalMsg").text(`${totalEnergy.toFixed(2)} kcal per 100 g.`).attr("style", "font-weight:bold");
-            $("#totalWeightMsg").text(`Total weight is ${totalWeight - twWeight} g`);
-
-            var text = `(${result.join(" + ")}) * 100 / (${totalWeight}-${twWeight}) = ${totalEnergy}`;
-            $("#textResult").text(text).attr("style", "color:black;");
-        }
-
-        function addNewTw() {
-            let xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function () {
-                if (this.readyState == 4) {
-                    if (this.status == 200) {
-                        let weight = $("#newTwWeight").val();
-                        let name = $("#newTwName").val();
-                        addItemToTableware(weight, 'tableware',
-                            `${$("#newTwName").val()} ${$("#newTwWeight").val()} g`);
-
-                        $("#twNameResponse").text($("#newTwName").val());
-                        $("#newTwResponse").text(" successfully added.").attr("style", "color:green;");
-
-                        $("#newTwWeight").val(0);
-                        $("#newTwName").val('').focus();
-                    } else {
-                        $("#twNameResponse").text("");
-                        $("#newTwResponse").text(this.responseText).attr("style", "color:red;");
-                    }
-                }
-            };
-
-            xhttp.open("POST", "/add_tableware", true);
-            xhttp.send(JSON.stringify({
-                "name": $("#newTwName").val(),
-                "weight": parseInt($("#newTwWeight").val())
-            }));
-        }
-
-        function addNewProduct() {
-            let xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function () {
-                if (this.readyState == 4) {
-                    if (this.status == 200) {
-                        let kcal = $("#kcal").val();
-                        let id = parseInt(this.responseText);
-                        let name = `${$("#product").val()} ${kcal} kcal`;
-                        allProducts[id] = { kcal: kcal, name: name, id: id };
-
-                        $("#ingredients").append($("<option>")
-                            .attr('kcal', kcal)
-                            .attr('id', id)
-                            .text(name));
-                        $("#prNameResponse").text($("#product").val());
-                        $("#newProductResponse").text(" successfully added.").attr("style", "color:green;");
-
-                        $("#kcal").val(0);
-                        $("#product").val('').focus();
-                    } else {
-                        $("#prNameResponse").text("");
-                        $("#newProductResponse").text(this.responseText).attr("style", "color:red;");
-                    }
-                }
-            };
-
-            xhttp.open("POST", "/add_ingredient", true);
-            xhttp.send(JSON.stringify({
-                "product": $("#product").val(),
-                "kcal": parseInt($("#kcal").val())
-            }));
-        }
-
-        function hideDiv(divName) {
-            var div = $(`#${divName}`);
-            if (div.css("display") === "none") {
-                div.attr("style", "display:block");
-                div.find('input').first().focus();
-            } else {
-                div.attr("style", "display:none");
-                $("#getIngredient").focus();
-            }
-        }
-
-        function reset() {
-            allIngredients = [];
-
-            $("#recipe tbody").find("tr:not(:last)").remove();
-            $("#recipeName").val("");
-            $("#recipeDescription").val("");
-            $("#totalWeight").val("1");
-            $("#getIngredient").val("");
-            $("#allRecipes").val("default");
-            onRecipeChange();
-        }
-
-        function loadRecipes() {
-            let xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function () {
-                if (this.readyState == 4 && this.status == 200) {
-                    JSON.parse(this.responseText).forEach(recipe =>
-                        $("#allRecipes").append($("<option>").text(recipe.name)
-                            .attr('value', recipe.id)
-                        )
-                    );
-                };
-            }
-
-            xhttp.open("GET", "/get_recipes", true);
-            xhttp.send();
-        }
-
-        let prevSelectedRecipeValue = "default";
-
-        function loadRecipe() {
-            let selected = $("#allRecipes").children("option:selected");
-            if (!confirm(`Do you want to load the recipe '${selected.text()}'?`)) {
-                $("#allRecipes").val(prevSelectedRecipeValue);
-                return;
-            }
-
-            prevSelectedRecipeValue = selected.val();
-            let xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function () {
-                if (this.readyState == 4 && this.status == 200) {
-                    reset();
-
-                    let recipe = JSON.parse(this.responseText);
-                    $("#recipeName").val(recipe.header.name);
-                    $("#recipeDescription").val(recipe.description);
-                    for (let ingr of recipe.ingredients) {
-                        if (!(ingr.id in allProducts)) {
-                            onRecipeChange();
-                            return;
-                        }
-                    }
-
-                    recipe.ingredients.forEach(ingr => addNextIngredientForm(ingr.id, ingr.weight));
-                    onRecipeChange();
-                    $("#allRecipes").val(selected.val());
-                };
-            }
-
-            xhttp.open("GET", `/recipe/${selected.val()}`, true);
-            xhttp.send();
-        }
-
-        function saveRecipe() {
-            let name = $("#recipeName").val();
-
-            if (!confirm(`Do you want to save recipe '${name}'?`)) {
-                return;
-            }
-
-            let descr = $("#recipeDescription").val();
-
-            let xhttp = new XMLHttpRequest();
-            xhttp.onreadystatechange = function () {
-                if (this.readyState == 4 && this.status == 200) {
-                    reset();
-                    $("#saveRecipeResponse").text("The recipe was saved.").attr("style", "color:green;");
-                } else {
-                    $("#saveRecipeResponse").text(this.responseText).attr("style", "color:red;");
-                }
-            };
-
-            xhttp.open("POST", "/create_recipe", true);
-            xhttp.send(JSON.stringify({
-                "header": { "name": name },
-                "description": descr,
-                "ingredients": allIngredients,
-            }));
-        }
-
-    </script>
-</body>
+</script>
 
 </html>
