@@ -24,7 +24,7 @@
     </style>
 </head>
 
-<body onload="getTableware()">
+<body>
     <table id="tableware" style="width:50%">
         <tr>
             <td colspan="2">
@@ -73,6 +73,14 @@
 
 
 <script>
+    $(function () {
+        getTablewareRequest(tableware => {
+            tableware.forEach(tw =>
+                addPotToTable(tw.name, tw.weight, tw.id)
+            );
+        });
+    });
+
     function addPotToTable(name, weight, dbId) {
         let dltBtn = $("<input type=submit value=Delete>")
             .attr("dbId", dbId)
@@ -98,14 +106,6 @@
         }, err => {
             $("#twNameResponse").text("");
             $("#response").text(err).attr("style", "color:red;");
-        });
-    }
-
-    function getTableware() {
-        getTablewareRequest(tableware => {
-            tableware.forEach(tw =>
-                addPotToTable(tw.name, tw.weight, tw.id)
-            );
         });
     }
 

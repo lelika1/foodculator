@@ -24,7 +24,7 @@
     </style>
 </head>
 
-<body onload="getProducts()">
+<body>
     <table id="ingredients" style="width:50%">
         <tr>
             <td colspan="2">
@@ -72,6 +72,14 @@
 
 
 <script>
+    $(function () {
+        getProductsRequest(products => {
+            products.forEach(pr =>
+                addProductToTable(pr.name, pr.kcal, pr.id)
+            );
+        });
+    });
+
     function addProductToTable(name, kcal, dbId) {
         let dltBtn = $("<input type=submit value=Delete>")
             .attr("dbId", dbId)
@@ -97,14 +105,6 @@
         }, err => {
             $("#prNameResponse").text("");
             $("#response").text(err).attr("style", "color:red;");
-        });
-    }
-
-    function getProducts() {
-        getProductsRequest(products => {
-            products.forEach(pr =>
-                addProductToTable(pr.name, pr.kcal, pr.id)
-            );
         });
     }
 

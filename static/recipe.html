@@ -43,7 +43,7 @@
 
 </head>
 
-<body onload="loadData()">
+<body>
     <div id="left">
         <table id="recipe" style="width:80%">
             <thead>
@@ -155,11 +155,11 @@
     var allProducts = [];
     var allIngredients = [];
 
-    function loadData() {
+    $(function () {
         getProductsRequest(onProductsLoad);
         loadTableware();
         loadRecipes();
-    }
+    });
 
     function onProductsLoad(products) {
         products.forEach(pr => {
