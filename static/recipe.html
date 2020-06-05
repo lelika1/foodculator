@@ -189,7 +189,7 @@
             .attr('checked', checked)
             .attr('id', id)
             .val(weight)
-            .click(() => onRecipeChange());
+            .click(onRecipeChange);
 
         $('#tableware')
             .append(radio)
@@ -225,7 +225,7 @@
     function addNextIngredientForm(id, weight) {
         let edit = $('<input type="number" min=0 max=10000>')
             .val(weight)
-            .on('input', () => onRecipeChange());
+            .on('input', onRecipeChange);
 
         $('#recipe tbody tr:last').before($("<tr>")
             .append($("<td>").text(allProducts[id].name))
