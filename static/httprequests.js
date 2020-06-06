@@ -1,33 +1,13 @@
 function getProductsRequest(success, fail = function(param) {}) {
-    let xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                success(JSON.parse(this.responseText));
-            } else {
-                fail(this.responseText);
-            }
-        }
-    };
-
-    xhttp.open('GET', '/get_ingredients', true);
-    xhttp.send();
+    $.get('/get_ingredients')
+        .done(success)
+        .fail(data => fail(data.responseText));
 }
 
 function addProductRequest(name, kcal, success, fail = function(param) {}) {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                success(parseInt(this.responseText));
-            } else {
-                fail(this.responseText);
-            }
-        }
-    };
-
-    xhttp.open('POST', '/add_ingredient', true);
-    xhttp.send(JSON.stringify({'product': name, 'kcal': kcal}));
+    $.post('/add_ingredient', JSON.stringify({'product': name, 'kcal': kcal}))
+        .done(success)
+        .fail(data => fail(data.responseText));
 }
 
 function deleteProductRequest(name, id, success, fail = function(param) {}) {
@@ -35,51 +15,19 @@ function deleteProductRequest(name, id, success, fail = function(param) {}) {
         return;
     }
 
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                success(this.responseText);
-            } else {
-                fail(this.responseText);
-            }
-        }
-    };
-
-    xhttp.open('DELETE', `/ingredient/${id}`, true);
-    xhttp.send();
+    $.ajax({type: 'DELETE', url: `/ingredient/${id}`})
+        .done(success)
+        .fail(data => fail(data.responseText));
 }
 
 function getTablewareRequest(success, fail = function(param) {}) {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                success(JSON.parse(this.responseText));
-            } else {
-                fail(this.responseText);
-            }
-        }
-    };
-
-    xhttp.open('GET', '/get_tableware', true);
-    xhttp.send();
+    $.get('/get_tableware').done(success).fail(data => fail(data.responseText));
 }
 
 function addTablewareRequest(name, weight, success, fail = function(param) {}) {
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                success(parseInt(this.responseText));
-            } else {
-                fail(this.responseText);
-            }
-        }
-    };
-
-    xhttp.open('POST', '/add_tableware', true);
-    xhttp.send(JSON.stringify({'name': name, 'weight': weight}));
+    $.post('/add_tableware', JSON.stringify({'name': name, 'weight': weight}))
+        .done(success)
+        .fail(data => fail(data.responseText));
 }
 
 function deleteTablewareRequest(name, id, success, fail = function(param) {}) {
@@ -87,72 +35,28 @@ function deleteTablewareRequest(name, id, success, fail = function(param) {}) {
         return;
     }
 
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                success(this.responseText);
-            } else {
-                fail(this.responseText);
-            }
-        }
-    };
-
-    xhttp.open('DELETE', `/tableware/${id}`, true);
-    xhttp.send();
+    $.ajax({type: 'DELETE', url: `/tableware/${id}`})
+        .done(success)
+        .fail(data => fail(data.responseText));
 }
 
 function getRecipesRequest(success, fail = function(param) {}) {
-    let xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                success(JSON.parse(this.responseText));
-            } else {
-                fail(this.responseText);
-            }
-        }
-    };
-
-    xhttp.open('GET', '/get_recipes', true);
-    xhttp.send();
+    $.get('/get_recipes').done(success).fail(data => fail(data.responseText));
 }
 
 function getRecipeRequest(id, success, fail = function(param) {}) {
-    let xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                success(JSON.parse(this.responseText));
-            } else {
-                fail(this.responseText);
-            }
-        }
-    };
-
-    xhttp.open('GET', `/recipe/${id}`, true);
-    xhttp.send();
+    $.get(`/recipe/${id}`).done(success).fail(data => fail(data.responseText));
 }
 
 function addRecipeRequest(
     name, description, ingredients, success, fail = function(param) {}) {
-    let xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                success(parseInt(this.responseText));
-            } else {
-                fail(this.responseText);
-            }
-        }
-    };
-
-    xhttp.open('POST', '/create_recipe', true);
-    xhttp.send(JSON.stringify({
-        'header': {'name': name},
-        'description': description,
-        'ingredients': ingredients,
-    }));
+    $.post('/create_recipe', JSON.stringify({
+         'header': {'name': name},
+         'description': description,
+         'ingredients': ingredients,
+     }))
+        .done(success)
+        .fail(data => fail(data.responseText));
 }
 
 function deleteRecipeRequest(name, id, success, fail = function(param) {}) {
@@ -160,17 +64,7 @@ function deleteRecipeRequest(name, id, success, fail = function(param) {}) {
         return;
     }
 
-    var xhttp = new XMLHttpRequest();
-    xhttp.onreadystatechange = function() {
-        if (this.readyState == 4) {
-            if (this.status == 200) {
-                success(this.responseText);
-            } else {
-                fail(this.responseText);
-            }
-        }
-    };
-
-    xhttp.open('DELETE', `/recipe/${id}`, true);
-    xhttp.send();
+    $.ajax({type: 'DELETE', url: `/recipe/${id}`})
+        .done(success)
+        .fail(data => fail(data.responseText));
 }

@@ -24,7 +24,7 @@
     </style>
 </head>
 
-<body onload="getTableware()">
+<body>
     <table id="tableware" style="width:50%">
         <tr>
             <td colspan="2">
@@ -33,8 +33,7 @@
         </tr>
         <tr>
             <td>
-                <input type="text" id="name" placeholder="pot's name"
-                    onkeydown="callOnEnter(setFocusOnNextInput, this)">
+                <input type="text" id="name" placeholder="pot's name" onkeydown="callOnEnter(focusOn, 'weight')">
             </td>
             <td>
                 <input type="number" min="0" max="10000" id="weight" onkeydown="callOnEnter(addTableware)"
@@ -73,11 +72,23 @@
 
 
 <script>
+    $(function () {
+        getTablewareRequest(tableware =>
+            tableware.forEach(tw =>
+                addPotToTable(tw.name, tw.weight, tw.id))
+        );
+    });
+
     function addPotToTable(name, weight, dbId) {
         let dltBtn = $("<input type=submit value=Delete>")
-            .attr("dbId", dbId)
-            .attr("desc", `(${name}, ${weight})`)
-            .attr("onclick", " deleteTableware($(this))");
+            .click(function () {
+                deleteTablewareRequest(`(${name}, ${weight})`, dbId, response => {
+                    $("#deleteResponse").text(response);
+                    $(this).closest("tr").remove();
+                }, response =>
+                    $("#deleteResponse").text(response)
+                );
+            });
 
         $('#tableware').append($("<tr>")
             .append($("<td>").text(name))
@@ -98,23 +109,6 @@
         }, err => {
             $("#twNameResponse").text("");
             $("#response").text(err).attr("style", "color:red;");
-        });
-    }
-
-    function getTableware() {
-        getTablewareRequest(tableware => {
-            tableware.forEach(tw =>
-                addPotToTable(tw.name, tw.weight, tw.id)
-            );
-        });
-    }
-
-    function deleteTableware(btn) {
-        deleteTablewareRequest(btn.attr("desc"), btn.attr("dbId"), response => {
-            $("#deleteResponse").text(response);
-            btn.closest("tr").remove();
-        }, response => {
-            $("#deleteResponse").text(response);
         });
     }
 </script>

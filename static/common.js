@@ -1,8 +1,5 @@
-function setFocusOnNextInput(current) {
-    if (current.length != 1) {
-        return;
-    }
-    $(':input:eq(' + ($(':input').index(current[0]) + 1) + ')').focus();
+function focusOn(id) {
+    $('#' + id[0]).focus();
 }
 
 function callOnEnter(fn, ...params) {
