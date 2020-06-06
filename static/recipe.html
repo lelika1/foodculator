@@ -199,11 +199,11 @@
 
     function loadTableware() {
         addItemToTableware(0, 'tableware', "No pot", true);
-        getTablewareRequest(tableware => {
-            tableware.forEach(tw => {
-                addItemToTableware(tw.weight, 'tableware', `${tw.name} ${tw.weight} g`);
-            });
-        });
+        getTablewareRequest(tableware =>
+            tableware.forEach(tw =>
+                addItemToTableware(tw.weight, 'tableware', `${tw.name} ${tw.weight} g`)
+            )
+        );
     }
 
     function addNextIngredient() {
@@ -349,13 +349,13 @@
     }
 
     function loadRecipes() {
-        getRecipesRequest(recipes => {
+        getRecipesRequest(recipes =>
             recipes.forEach(recipe =>
                 $("#allRecipes").append($("<option>").text(recipe.name)
                     .attr('value', recipe.id)
                 )
-            );
-        });
+            )
+        );
     }
 
     let prevSelectedRecipeValue = "default";
@@ -399,9 +399,9 @@
             reset();
             $("#allRecipes").append($("<option>").text(name).attr('value', id))
             $("#saveRecipeResponse").text("The recipe was saved.").attr("style", "color:green;");
-        }, err => {
-            $("#saveRecipeResponse").text(err).attr("style", "color:red;");
-        });
+        }, err =>
+            $("#saveRecipeResponse").text(err).attr("style", "color:red;")
+        );
     }
 
 </script>
