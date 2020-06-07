@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
         {"/", "/index.html"},
         {"/ingredients", "/ingredients.html"},
         {"/tableware", "/tableware.html"},
-        {"/new_recipe", "/recipe.html"},
+        {"/recipe", "/recipe.html"},
     };
 
     for (const auto& [page, path] : html_pages) {

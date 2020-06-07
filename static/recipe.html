@@ -45,24 +45,9 @@
 
 <body>
     <div id="left">
+        <h1 id="pageHeader"></h1>
         <table id="recipe" style="width:80%">
             <thead>
-                <tr>
-                    <td colspan="2">
-                        <select id="allRecipes" onchange="loadRecipe()" style="font-size: large; width:100%">
-                            <option value="default" style="font-size: large;" disabled selected>
-                                Select a recipe
-                            </option>
-                        </select>
-                    </td>
-                </tr>
-
-                <tr>
-                    <td>
-                        <span style="font-size: x-large;">... or create a new one</span>
-                    </td>
-                </tr>
-
                 <tr>
                     <th>Ingredient</th>
                     <th>Amount</th>
@@ -141,7 +126,7 @@
             <span style="font-size: large;">Recipe name:</span><br>
             <input type="text" id="recipeName" placeholder="Input recipe name" style="width:60%"> <br><br>
             <span style="font-size: large;">Description:</span><br>
-            <textarea rows="6" id="recipeDescription" style="width:60%"
+            <textarea rows="10" id="recipeDescription" style="width:60%"
                 placeholder="Input recipe description..."></textarea><br>
             <input type="submit" value="Save a recipe" onclick="saveRecipe()">
 
@@ -154,11 +139,18 @@
 <script>
     var allProducts = [];
     var allIngredients = [];
+    var recipeId = null;
 
     $(function () {
-        getProductsRequest(onProductsLoad);
+        let searchParams = new URLSearchParams(window.location.search);
+        if (!searchParams.has('id')) {
+            $("#pageHeader").text("Create new recipe")
+        } else {
+            recipeId = parseInt(searchParams.get('id'));
+        }
+
         loadTableware();
-        loadRecipes();
+        getProductsRequest(onProductsLoad);
     });
 
     function onProductsLoad(products) {
@@ -170,16 +162,24 @@
             allProducts[pr.id] = { kcal: pr.kcal, name: name, id: pr.id };
         });
 
-        let recipe = JSON.parse(sessionStorage.getItem("allIngredients")) || [];
-        for (let ingr of recipe) {
-            if (!(ingr.id in allProducts)) {
-                onRecipeChange();
-                return;
-            }
+        if (sessionStorage.hasOwnProperty("allIngredients")) {
+            let ingredients = JSON.parse(sessionStorage.getItem("allIngredients")) || [];
+            let name = sessionStorage.getItem("recipeName") || "";
+            let description = sessionStorage.getItem("recipeDescription") || "";
+
+            let saved = (sessionStorage.hasOwnProperty("saved"))
+                ? JSON.parse(sessionStorage["saved"])
+                : false;
+
+            addRecipeOnPage(name, description, ingredients, saved);
+            return;
         }
 
-        recipe.forEach(ingr => addNextIngredientForm(ingr.id, ingr.weight));
-        onRecipeChange();
+        if (recipeId) {
+            getRecipeRequest(recipeId, recipe => {
+                addRecipeOnPage(recipe.header.name, recipe.description, recipe.ingredients, true);
+            });
+        }
     }
 
     function addItemToTableware(weight, name, text, checked = false) {
@@ -244,6 +244,14 @@
         $("#gram").val(0);
         $("#getIngredient").val('').focus();
     }
+
+    $("#recipeName").on("input", () => {
+        sessionStorage.setItem("recipeName", $("#recipeName").val());
+    });
+
+    $("#recipeDescription").on("input", () => {
+        sessionStorage.setItem("recipeDescription", $("#recipeDescription").val());
+    });
 
     function onRecipeChange() {
         sessionStorage.setItem("allIngredients", JSON.stringify(allIngredients));
@@ -344,46 +352,33 @@
         $("#recipeDescription").val("");
         $("#totalWeight").val("1");
         $("#getIngredient").val("");
-        $("#allRecipes").val("default");
         onRecipeChange();
     }
 
-    function loadRecipes() {
-        getRecipesRequest(recipes =>
-            recipes.forEach(recipe =>
-                $("#allRecipes").append($("<option>").text(recipe.name)
-                    .attr('value', recipe.id)
-                )
-            )
-        );
-    }
 
-    let prevSelectedRecipeValue = "default";
+    function addRecipeOnPage(name, description, ingredients, saved) {
+        sessionStorage.clear();
 
-    function loadRecipe() {
-        let selected = $("#allRecipes").children("option:selected");
-        if (!confirm(`Do you want to load the recipe '${selected.text()}' ? `)) {
-            $("#allRecipes").val(prevSelectedRecipeValue);
-            return;
+        if (saved) {
+            $("#pageHeader").text(name);
         }
 
-        prevSelectedRecipeValue = selected.val();
-        getRecipeRequest(selected.val(), recipe => {
-            reset();
+        $("#recipeName").val(name);
+        $("#recipeDescription").val(description);
 
-            $("#recipeName").val(recipe.header.name);
-            $("#recipeDescription").val(recipe.description);
-            for (let ingr of recipe.ingredients) {
-                if (!(ingr.id in allProducts)) {
-                    onRecipeChange();
-                    return;
-                }
+        for (let ingr of ingredients) {
+            if (!(ingr.id in allProducts)) {
+                onRecipeChange();
+                return;
             }
+        }
 
-            recipe.ingredients.forEach(ingr => addNextIngredientForm(ingr.id, ingr.weight));
-            onRecipeChange();
-            $("#allRecipes").val(selected.val());
-        });
+        ingredients.forEach(ingr => addNextIngredientForm(ingr.id, ingr.weight));
+        onRecipeChange();
+
+        sessionStorage.setItem("recipeName", name);
+        sessionStorage.setItem("recipeDescription", description);
+        sessionStorage.setItem("saved", saved);
     }
 
     function saveRecipe() {
@@ -396,8 +391,6 @@
         let descr = $("#recipeDescription").val();
 
         addRecipeRequest(name, descr, allIngredients, id => {
-            reset();
-            $("#allRecipes").append($("<option>").text(name).attr('value', id))
             $("#saveRecipeResponse").text("The recipe was saved.").attr("style", "color:green;");
         }, err =>
             $("#saveRecipeResponse").text(err).attr("style", "color:red;")
