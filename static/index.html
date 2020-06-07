@@ -1,77 +1,67 @@
 <html>
 
 <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css"
+        integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+
     <title>Foodculator 1.0</title>
     <link rel="icon" href="/static/icon.svg">
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script type="text/javascript" src="/static/httprequests.js"></script>
-
-    <style>
-        a {
-            text-decoration: none;
-        }
-
-        .upperLink {
-            padding: 10px 35px;
-            background-color: lavender;
-            box-shadow: 0 0 5px black;
-            font-size: large;
-        }
-
-        .recipeLink {
-            width: 60%;
-            background-color: lavender;
-            margin: 2%;
-            margin-left: 5%;
-            padding: 1.5%;
-            box-shadow: 0 0 5px black;
-            text-align: center;
-            font-size: x-large;
-            font-variant: all-petite-caps;
-        }
-
-        .defaultLink {
-            background-color: #673ab75e;
-            margin-bottom: 5%;
-        }
-
-        .container {
-            padding: 0 10px;
-            margin: 0 auto;
-            border-bottom: 1px solid #4A148C;
-        }
-    </style>
-
 </head>
 
-<body>
-    <header style="min-height: 10%;" class="container">
-        <div style="float: left;">
-            <img src="/static/icon.svg" height="50">
-            <span style="font-size: xx-large;"> Foodculator</span>
-        </div>
+<body class="d-flex flex-column">
+    <nav class="navbar navbar-expand-lg navbar-light bg-light">
+        <a class="navbar-brand" href="#">
+            <img src="/static/icon.svg" width="30" height="30" class="d-inline-block align-top" alt="" loading="lazy">
+            Foodculator
+        </a>
 
-        <nav style="float: right; margin-top: 1.5%; margin-right: 3%;">
-            <a href="/ingredients" class="upperLink">Ingredients</a>
-            <a href="/tableware" class="upperLink">Pans and pots</a>
-        </nav>
-    </header>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
 
-    <main style="min-height: 80%;" class="container">
-        <div id="allRecipes" style="margin: 1%;margin-left: 10%; padding:3%;">
-            <a href="/recipe">
-                <div class="recipeLink defaultLink">
-                    Create a new recipe
-                </div>
-            </a>
+        <ul class="collapse navbar-collapse navbar-nav justify-content-end" id="navbarSupportedContent">
+            <li class="nav-item active">
+                <a class="nav-link" href="#">Home <span class="sr-only">(current)</span></a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/recipe"> Create new recipe </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/ingredients">Ingredients</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" href="/tableware">Pans and pots</a>
+            </li>
+        </ul>
+    </nav>
+
+    <main class="container">
+        <h1> All recipes </h1>
+        <div class="list-group" id="allRecipes">
         </div>
     </main>
 
-    <footer class="container" style="min-height: 5%;">
-        <div style="margin-top: 1%;">Icons made by <a href="https://www.flaticon.com/authors/wanicon"
-                title="wanicon">wanicon</a> from
-            <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
+    <footer class="bg-light mt-auto py-3">
+        <div class="container">
+            Icons made by <a href="https://www.flaticon.com/authors/wanicon" title="wanicon">wanicon</a> from
+            <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a>
+        </div>
     </footer>
+
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+        integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+        crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js"
+        integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI"
+        crossorigin="anonymous"></script>
 </body>
 
 </html>
@@ -82,8 +72,9 @@
         getRecipesRequest(recipes =>
             recipes.forEach(recipe =>
                 $("#allRecipes").append(
-                    $(`<a href="recipe?id=${recipe.id}">`)
-                        .append($("<div>").text(recipe.name).addClass("recipeLink"))
+                    $(`<a href="/recipe?id=${recipe.id}">`)
+                        .addClass("list-group-item list-group-item-info")
+                        .text(recipe.name)
                 )
             )
         );
