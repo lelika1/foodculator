@@ -1,19 +1,92 @@
 <html>
+
 <head>
     <title>Foodculator 1.0</title>
     <link rel="icon" href="/static/icon.svg">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script type="text/javascript" src="/static/httprequests.js"></script>
+
+    <style>
+        a {
+            text-decoration: none;
+        }
+
+        .upperLink {
+            padding: 10px 35px;
+            background-color: lavender;
+            box-shadow: 0 0 5px black;
+            font-size: large;
+        }
+
+        .recipeLink {
+            width: 60%;
+            background-color: lavender;
+            margin: 2%;
+            margin-left: 5%;
+            padding: 1.5%;
+            box-shadow: 0 0 5px black;
+            text-align: center;
+            font-size: x-large;
+            font-variant: all-petite-caps;
+        }
+
+        .defaultLink {
+            background-color: #673ab75e;
+            margin-bottom: 5%;
+        }
+
+        .container {
+            /* width: 90%; */
+            padding: 0 10px;
+            margin: 0 auto;
+            border-bottom: 1px solid #4A148C;
+        }
+    </style>
+
 </head>
 
 <body>
-    <h1>Foodculator</h1>
+    <header style="min-height: 10%;" class="container">
+        <div style="float: left;">
+            <img src="/static/icon.svg" height="50">
+            <span style="font-size: xx-large;"> Foodculator</span>
+        </div>
 
-    <p><a href="/ingredients">Ingredients</a></p>
-    <p><a href="/tableware">Pans and pots</a></p>
-    <br>
-    <p><a href="/new_recipe">New recipe</a></p>
+        <nav style="float: right; margin-top: 1.5%; margin-right: 3%;">
+            <a href="/ingredients" class="upperLink">Ingredients</a>
+            <a href="/tableware" class="upperLink">Pans and pots</a>
+        </nav>
+    </header>
 
-    <img src="/static/icon.svg" height="200">
-    <div>Icons made by <a href="https://www.flaticon.com/authors/wanicon" title="wanicon">wanicon</a> from <a
-            href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
+    <main style="min-height: 80%;" class="container">
+        <div id="allRecipes" style="margin: 1%;margin-left: 10%; padding:3%;">
+            <a href="/recipe">
+                <div class="recipeLink defaultLink">
+                    Create a new recipe
+                </div>
+            </a>
+        </div>
+    </main>
+
+    <footer class="container" style="min-height: 5%;">
+        <div style="margin-top: 1%;">Icons made by <a href="https://www.flaticon.com/authors/wanicon"
+                title="wanicon">wanicon</a> from
+            <a href="https://www.flaticon.com/" title="Flaticon">www.flaticon.com</a></div>
+    </footer>
 </body>
+
 </html>
+
+<script>
+    $(function () {
+        sessionStorage.clear();
+        getRecipesRequest(recipes =>
+            recipes.forEach(recipe =>
+                $("#allRecipes").append(
+                    $(`<a href="recipe?id=${recipe.id}">`)
+                        .append($("<div>").text(recipe.name).addClass("recipeLink"))
+                )
+            )
+        );
+    });
+</script>
