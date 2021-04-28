@@ -2,9 +2,9 @@
 
 ![CI](https://github.com/lelika1/foodculator/workflows/CI/badge.svg)
 
-<img src="https://raw.githubusercontent.com/lelika1/foodculator/master/static/icon.svg" height=50 width=50>
+<img src="https://raw.githubusercontent.com/lelika1/foodculator/master/static/icon.svg" height=75 width=75>
 
-`Foodculator` is a web service, written in C++, that allows you to record all your favourite food recipes, catolog your tableware, and, most importantly, calculate nutrition of a dish you are cooking today.
+`Foodculator` is a web service, written in C++, that allows you to record all your favourite food recipes, catalog your tableware, and, most importantly, calculate nutrition of a dish you are cooking today.
 
 ## Build
 
