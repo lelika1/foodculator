@@ -1,5 +1,5 @@
 # Container image that runs your code
-FROM alpine:latest as BASE
+FROM alpine:3.12.0 as BASE
 RUN apk --no-cache add sqlite-dev libstdc++ zlib-dev openssl-dev curl-dev boost-dev
 
 FROM BASE as builder
